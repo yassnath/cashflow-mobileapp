@@ -8,150 +8,157 @@
 8        android:minSdkVersion="24"
 9        android:targetSdkVersion="34" />
 10
-11    <uses-permission android:name="android.permission.USE_BIOMETRIC" /> <!-- suppress DeprecatedClassUsageInspection -->
-11-->[androidx.biometric:biometric:1.1.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\a0a42a6e72dba18370eff101632401c7\transformed\biometric-1.1.0\AndroidManifest.xml:24:5-72
-11-->[androidx.biometric:biometric:1.1.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\a0a42a6e72dba18370eff101632401c7\transformed\biometric-1.1.0\AndroidManifest.xml:24:22-69
-12    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
-12-->[androidx.biometric:biometric:1.1.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\a0a42a6e72dba18370eff101632401c7\transformed\biometric-1.1.0\AndroidManifest.xml:27:5-74
-12-->[androidx.biometric:biometric:1.1.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\a0a42a6e72dba18370eff101632401c7\transformed\biometric-1.1.0\AndroidManifest.xml:27:22-71
-13
-14    <permission
-14-->[androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:22:5-24:47
-15        android:name="com.solvix.tabungan.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
-15-->[androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:23:9-81
-16        android:protectionLevel="signature" />
-16-->[androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:24:9-44
-17
-18    <uses-permission android:name="com.solvix.tabungan.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-18-->[androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:26:5-97
-18-->[androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:26:22-94
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:3:3-65
+11-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:3:20-62
+12    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+12-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:4:3-77
+12-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:4:20-74
+13    <uses-permission android:name="android.permission.USE_BIOMETRIC" /> <!-- suppress DeprecatedClassUsageInspection -->
+13-->[androidx.biometric:biometric:1.1.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\a0a42a6e72dba18370eff101632401c7\transformed\biometric-1.1.0\AndroidManifest.xml:24:5-72
+13-->[androidx.biometric:biometric:1.1.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\a0a42a6e72dba18370eff101632401c7\transformed\biometric-1.1.0\AndroidManifest.xml:24:22-69
+14    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+14-->[androidx.biometric:biometric:1.1.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\a0a42a6e72dba18370eff101632401c7\transformed\biometric-1.1.0\AndroidManifest.xml:27:5-74
+14-->[androidx.biometric:biometric:1.1.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\a0a42a6e72dba18370eff101632401c7\transformed\biometric-1.1.0\AndroidManifest.xml:27:22-71
+15
+16    <permission
+16-->[androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:22:5-24:47
+17        android:name="com.solvix.tabungan.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+17-->[androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:23:9-81
+18        android:protectionLevel="signature" />
+18-->[androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:24:9-44
 19
-20    <application
-20-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:3:3-18:17
-21        android:allowBackup="true"
-21-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:4:5-31
-22        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
-22-->[androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:28:18-86
-23        android:debuggable="true"
-24        android:extractNativeLibs="false"
-25        android:icon="@drawable/logo2"
-25-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:6:5-35
-26        android:label="@string/app_name"
-26-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:5:5-37
-27        android:roundIcon="@drawable/logo2"
-27-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:7:5-40
-28        android:supportsRtl="true"
-28-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:8:5-31
-29        android:theme="@style/Theme.Tabungan" >
-29-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:9:5-42
-30        <activity
-30-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:10:5-17:16
-31            android:name="com.solvix.tabungan.MainActivity"
-31-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:11:7-35
-32            android:exported="true" >
-32-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:12:7-30
-33            <intent-filter>
-33-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:13:7-16:23
-34                <action android:name="android.intent.action.MAIN" />
-34-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:14:9-61
-34-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:14:17-58
-35
-36                <category android:name="android.intent.category.LAUNCHER" />
-36-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:15:9-69
-36-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:15:19-66
-37            </intent-filter>
-38        </activity>
-39        <activity
-39-->[androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\d235f37b39610e1e976543d7ba3c6dc6\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
-40            android:name="androidx.compose.ui.tooling.PreviewActivity"
-40-->[androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\d235f37b39610e1e976543d7ba3c6dc6\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
-41            android:exported="true" />
-41-->[androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\d235f37b39610e1e976543d7ba3c6dc6\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
-42
-43        <provider
-43-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:9:9-17:20
-44            android:name="androidx.startup.InitializationProvider"
-44-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:10:13-67
-45            android:authorities="com.solvix.tabungan.androidx-startup"
-45-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:11:13-68
-46            android:exported="false" >
-46-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:12:13-37
-47            <meta-data
-47-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:14:13-16:52
-48                android:name="io.github.jan.supabase.gotrue.SupabaseInitializer"
-48-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:15:17-81
-49                android:value="androidx.startup" />
-49-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:16:17-49
+20    <uses-permission android:name="com.solvix.tabungan.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+20-->[androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:26:5-97
+20-->[androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:26:22-94
+21
+22    <application
+22-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:5:3-20:17
+23        android:allowBackup="true"
+23-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:6:5-31
+24        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+24-->[androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:28:18-86
+25        android:debuggable="true"
+26        android:extractNativeLibs="false"
+27        android:icon="@drawable/logo2"
+27-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:8:5-35
+28        android:label="@string/app_name"
+28-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:7:5-37
+29        android:roundIcon="@drawable/logo2"
+29-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:9:5-40
+30        android:supportsRtl="true"
+30-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:10:5-31
+31        android:testOnly="true"
+32        android:theme="@style/Theme.Tabungan" >
+32-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:11:5-42
+33        <activity
+33-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:12:5-19:16
+34            android:name="com.solvix.tabungan.MainActivity"
+34-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:13:7-35
+35            android:exported="true" >
+35-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:14:7-30
+36            <intent-filter>
+36-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:15:7-18:23
+37                <action android:name="android.intent.action.MAIN" />
+37-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:16:9-61
+37-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:16:17-58
+38
+39                <category android:name="android.intent.category.LAUNCHER" />
+39-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:17:9-69
+39-->D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:17:19-66
+40            </intent-filter>
+41        </activity>
+42        <activity
+42-->[androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\d235f37b39610e1e976543d7ba3c6dc6\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
+43            android:name="androidx.compose.ui.tooling.PreviewActivity"
+43-->[androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\d235f37b39610e1e976543d7ba3c6dc6\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
+44            android:exported="true" />
+44-->[androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\d235f37b39610e1e976543d7ba3c6dc6\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
+45
+46        <provider
+46-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:9:9-17:20
+47            android:name="androidx.startup.InitializationProvider"
+47-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:10:13-67
+48            android:authorities="com.solvix.tabungan.androidx-startup"
+48-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:11:13-68
+49            android:exported="false" >
+49-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:12:13-37
 50            <meta-data
-50-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\680eed51ba421c8b9a1e829dc5be2ab1\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
-51                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-51-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\680eed51ba421c8b9a1e829dc5be2ab1\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+50-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:14:13-16:52
+51                android:name="io.github.jan.supabase.gotrue.SupabaseInitializer"
+51-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:15:17-81
 52                android:value="androidx.startup" />
-52-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\680eed51ba421c8b9a1e829dc5be2ab1\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+52-->[io.github.jan-tennert.supabase:gotrue-kt-android-debug:2.4.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ce146ff27b337d5811248338600d60fc\transformed\gotrue-kt-debug\AndroidManifest.xml:16:17-49
 53            <meta-data
-53-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ac584e35e5e052402d2757d8b43287eb\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:29:13-31:52
-54                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-54-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ac584e35e5e052402d2757d8b43287eb\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:30:17-78
+53-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\680eed51ba421c8b9a1e829dc5be2ab1\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+54                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+54-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\680eed51ba421c8b9a1e829dc5be2ab1\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
 55                android:value="androidx.startup" />
-55-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ac584e35e5e052402d2757d8b43287eb\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:31:17-49
+55-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\680eed51ba421c8b9a1e829dc5be2ab1\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
 56            <meta-data
-56-->[com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\59339e8a8222cc78782889bfba3002ed\transformed\multiplatform-settings-no-arg-debug\AndroidManifest.xml:29:13-31:52
-57                android:name="com.russhwolf.settings.SettingsInitializer"
-57-->[com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\59339e8a8222cc78782889bfba3002ed\transformed\multiplatform-settings-no-arg-debug\AndroidManifest.xml:30:17-74
+56-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ac584e35e5e052402d2757d8b43287eb\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:29:13-31:52
+57                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+57-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ac584e35e5e052402d2757d8b43287eb\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:30:17-78
 58                android:value="androidx.startup" />
-58-->[com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\59339e8a8222cc78782889bfba3002ed\transformed\multiplatform-settings-no-arg-debug\AndroidManifest.xml:31:17-49
+58-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ac584e35e5e052402d2757d8b43287eb\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:31:17-49
 59            <meta-data
-59-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
-60                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-60-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
+59-->[com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\59339e8a8222cc78782889bfba3002ed\transformed\multiplatform-settings-no-arg-debug\AndroidManifest.xml:29:13-31:52
+60                android:name="com.russhwolf.settings.SettingsInitializer"
+60-->[com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\59339e8a8222cc78782889bfba3002ed\transformed\multiplatform-settings-no-arg-debug\AndroidManifest.xml:30:17-74
 61                android:value="androidx.startup" />
-61-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
-62        </provider>
-63
-64        <activity
-64-->[androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\f7c263a0e77d578f2687216b16890bb0\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:23:9-25:39
-65            android:name="androidx.activity.ComponentActivity"
-65-->[androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\f7c263a0e77d578f2687216b16890bb0\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:24:13-63
-66            android:exported="true" />
-66-->[androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\f7c263a0e77d578f2687216b16890bb0\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:25:13-36
-67
-68        <receiver
-68-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
-69            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-69-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
-70            android:directBootAware="false"
-70-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
-71            android:enabled="true"
-71-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
-72            android:exported="true"
-72-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
-73            android:permission="android.permission.DUMP" >
-73-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
-74            <intent-filter>
-74-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
-75                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-75-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
-75-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
-76            </intent-filter>
+61-->[com.russhwolf:multiplatform-settings-no-arg-android-debug:1.1.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\59339e8a8222cc78782889bfba3002ed\transformed\multiplatform-settings-no-arg-debug\AndroidManifest.xml:31:17-49
+62            <meta-data
+62-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
+63                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+63-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
+64                android:value="androidx.startup" />
+64-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
+65        </provider>
+66
+67        <activity
+67-->[androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\f7c263a0e77d578f2687216b16890bb0\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:23:9-25:39
+68            android:name="androidx.activity.ComponentActivity"
+68-->[androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\f7c263a0e77d578f2687216b16890bb0\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:24:13-63
+69            android:exported="true" />
+69-->[androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\f7c263a0e77d578f2687216b16890bb0\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:25:13-36
+70
+71        <receiver
+71-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
+72            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+72-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
+73            android:directBootAware="false"
+73-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
+74            android:enabled="true"
+74-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
+75            android:exported="true"
+75-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
+76            android:permission="android.permission.DUMP" >
+76-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
 77            <intent-filter>
-77-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
-78                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-78-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
-78-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
+77-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
+78                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+78-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
+78-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
 79            </intent-filter>
 80            <intent-filter>
-80-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
-81                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-81-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
-81-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
+80-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
+81                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+81-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
+81-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
 82            </intent-filter>
 83            <intent-filter>
-83-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
-84                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-84-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
-84-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
+83-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
+84                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+84-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
+84-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
 85            </intent-filter>
-86        </receiver>
-87    </application>
-88
-89</manifest>
+86            <intent-filter>
+86-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
+87                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+87-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
+87-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\24f80001e98f1653d3fa038d64e5fd6f\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
+88            </intent-filter>
+89        </receiver>
+90    </application>
+91
+92</manifest>

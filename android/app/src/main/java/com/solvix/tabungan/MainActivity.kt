@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -87,7 +88,7 @@ class MainActivity : FragmentActivity() {
   }
 }
 
-private enum class Page(val label: String, val icon: String) {
+enum class Page(val label: String, val icon: String) {
   Income("Pemasukkan", "💸"),
   Expense("Pengeluaran", "🧾"),
   Dreams("Target", "🌟"),
@@ -125,18 +126,24 @@ fun TabunganApp() {
   var confirmAction by remember { mutableStateOf<(() -> Unit)?>(null) }
   var showAlert by remember { mutableStateOf(false) }
   var alertMessage by remember { mutableStateOf("") }
+  val context = LocalContext.current
+  val prefs = remember { context.getSharedPreferences("tabungan_prefs", Context.MODE_PRIVATE) }
   var toastVisible by remember { mutableStateOf(false) }
   var toastMessage by remember { mutableStateOf("") }
-  var fingerprintEnabled by rememberSaveable { mutableStateOf(false) }
-  var currentLang by rememberSaveable { mutableStateOf(AppLanguage.ID) }
+  val defaultLang = prefs.getString("app_language", "EN") ?: "EN"
+  var currentLang by rememberSaveable {
+    mutableStateOf(if (defaultLang == "ID") AppLanguage.ID else AppLanguage.EN)
+  }
   val registeredUsers = remember { mutableStateListOf<UserProfile>() }
   var currentUser by remember { mutableStateOf<UserProfile?>(null) }
   val scope = rememberCoroutineScope()
   var isLoggedIn by remember { mutableStateOf(false) }
-
-  val context = LocalContext.current
-  val prefs = remember { context.getSharedPreferences("tabungan_prefs", Context.MODE_PRIVATE) }
   var hasSeenWelcome by remember { mutableStateOf(prefs.getBoolean("has_seen_welcome", false)) }
+  var fingerprintEnabled by rememberSaveable { mutableStateOf(prefs.getBoolean("fingerprint_enabled", false)) }
+  var hasRegistered by rememberSaveable { mutableStateOf(prefs.getBoolean("has_registered", false)) }
+  var savedUsername by rememberSaveable { mutableStateOf(prefs.getString("saved_username", "") ?: "") }
+  var savedPassword by rememberSaveable { mutableStateOf(prefs.getString("saved_password", "") ?: "") }
+  var fingerprintPrompted by rememberSaveable { mutableStateOf(false) }
   val biometricManager = remember { BiometricManager.from(context) }
   val keyguardManager = remember {
     context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
@@ -179,8 +186,8 @@ fun TabunganApp() {
       email = user.email,
       phone = user.phone,
       country = user.country,
-      birthdate = user.createdAt,
-      bio = "",
+      birthdate = user.birthdate,
+      bio = user.bio,
       username = user.username,
       password = user.password,
     )
@@ -217,6 +224,8 @@ fun TabunganApp() {
           put("email", user.email)
           put("phone", user.phone)
           put("country", user.country)
+          put("bio", user.bio)
+          put("birthdate", user.birthdate)
           put("created_at", user.createdAt)
           put("username", user.username)
           put("password", user.password)
@@ -233,12 +242,25 @@ fun TabunganApp() {
           put("email", user.email)
           put("phone", user.phone)
           put("country", user.country)
+          put("bio", user.bio)
+          put("birthdate", user.birthdate)
           put("username", user.username)
           put("password", user.password)
         },
       ) {
         filter { eq("id", user.id) }
       }
+  }
+
+  fun persistCredentials(username: String, password: String) {
+    savedUsername = username
+    savedPassword = password
+    hasRegistered = true
+    prefs.edit()
+      .putBoolean("has_registered", true)
+      .putString("saved_username", username)
+      .putString("saved_password", password)
+      .apply()
   }
 
   suspend fun fetchAllUsers(): List<SupabaseUser> {
@@ -324,6 +346,55 @@ fun TabunganApp() {
       savingEntries.addAll(saving)
       dreamEntries.clear()
       dreamEntries.addAll(dreams)
+    }
+  }
+
+  fun signInWithCredentials(username: String, password: String) {
+    if (username.isBlank() || password.isBlank()) {
+      alertMessage = strings["signin_missing"]
+      showAlert = true
+      return
+    }
+    if (username.trim() == "admin" && password == "adminsolvixstudio") {
+      showAuth = false
+      showAdmin = true
+      adminLoggedIn = true
+      adminUsername = "admin"
+      adminPassword = ""
+      scope.launch(Dispatchers.IO) {
+        val users = fetchAllUsers()
+        withContext(Dispatchers.Main) {
+          adminUsers.clear()
+          adminUsers.addAll(users)
+        }
+      }
+      return
+    }
+    scope.launch(Dispatchers.IO) {
+      try {
+        val matchedUser = fetchUserByCredentials(username.trim(), password)
+        withContext(Dispatchers.Main) {
+          if (matchedUser == null) {
+            alertMessage = strings["signin_failed"]
+            showAlert = true
+          } else {
+            currentUser = matchedUser
+            isLoggedIn = true
+            showAuth = false
+            persistCredentials(matchedUser.username, matchedUser.password)
+            toastMessage = strings["login_success"]
+            toastVisible = true
+            scope.launch(Dispatchers.IO) {
+              loadUserData(matchedUser.id)
+            }
+          }
+        }
+      } catch (e: Exception) {
+        withContext(Dispatchers.Main) {
+          alertMessage = "Gagal login: ${e.localizedMessage ?: "Cek koneksi internet"}"
+          showAlert = true
+        }
+      }
     }
   }
 
@@ -516,6 +587,25 @@ fun TabunganApp() {
           toastVisible = false
         }
       }
+      LaunchedEffect(showAuth, authTab) {
+        if (showAuth && authTab == AuthTab.SignIn) {
+          fingerprintPrompted = false
+        }
+      }
+      LaunchedEffect(showAuth, authTab, fingerprintEnabled, hasRegistered) {
+        if (!showAuth || authTab != AuthTab.SignIn) return@LaunchedEffect
+        if (!fingerprintEnabled || !hasRegistered || fingerprintPrompted) return@LaunchedEffect
+        if (!canUseFingerprint()) return@LaunchedEffect
+        fingerprintPrompted = true
+        launchFingerprintAuth {
+          if (savedUsername.isBlank() || savedPassword.isBlank()) {
+            alertMessage = strings["signin_missing"]
+            showAlert = true
+          } else {
+            signInWithCredentials(savedUsername, savedPassword)
+          }
+        }
+      }
       LaunchedEffect(showLoading) {
         if (!showLoading) return@LaunchedEffect
         loadingFadeOut = false
@@ -550,6 +640,7 @@ fun TabunganApp() {
                 current = currentPage,
                 onSelect = { page -> currentPage = page },
                 strings = strings,
+                theme = currentTheme,
                 modifier = Modifier.then(if (navBlur) Modifier.blur(24.dp) else Modifier),
               )
               if (navBlur) {
@@ -564,6 +655,7 @@ fun TabunganApp() {
           },
         ) { padding ->
           val blurRadius = when {
+            showAlert || showConfirm -> 0.dp
             showSplash || showAuth -> 72.dp
             modalOpen -> 20.dp
             else -> 0.dp
@@ -578,7 +670,7 @@ fun TabunganApp() {
               contentPadding = PaddingValues(
                 start = AppDimens.pagePadding,
                 end = AppDimens.pagePadding,
-                bottom = 110.dp,
+                bottom = 24.dp,
                 top = 0.dp,
               ),
               verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -621,6 +713,7 @@ fun TabunganApp() {
                   displayName = displayName,
                   displayUsername = displayUsername,
                   strings = strings,
+                  theme = currentTheme,
                 )
               }
 
@@ -792,19 +885,25 @@ fun TabunganApp() {
                       if (enabled) {
                         if (canUseFingerprint()) {
                           fingerprintEnabled = true
+                          prefs.edit().putBoolean("fingerprint_enabled", true).apply()
                           alertMessage = strings["fingerprint_enabled"]
                           showAlert = true
                         } else {
                           fingerprintEnabled = false
+                          prefs.edit().putBoolean("fingerprint_enabled", false).apply()
                           alertMessage = strings["fingerprint_required"]
                           showAlert = true
                         }
                       } else {
                         fingerprintEnabled = false
+                        prefs.edit().putBoolean("fingerprint_enabled", false).apply()
                       }
                     },
                     language = currentLang,
-                    onLanguageChange = { currentLang = it },
+                    onLanguageChange = {
+                      currentLang = it
+                      prefs.edit().putString("app_language", if (it == AppLanguage.ID) "ID" else "EN").apply()
+                    },
                     strings = strings,
                     onToast = {
                       toastMessage = it
@@ -826,7 +925,7 @@ fun TabunganApp() {
                   fontSize = 11.sp,
                   modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = 0.dp),
                   textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
               }
@@ -841,10 +940,10 @@ fun TabunganApp() {
           }
         }
 
-        Box(
+      Box(
         modifier = Modifier
           .fillMaxWidth()
-          .padding(bottom = 120.dp)
+          .padding(bottom = 72.dp)
           .align(Alignment.BottomCenter),
         contentAlignment = Alignment.Center,
       ) {
@@ -927,42 +1026,22 @@ fun TabunganApp() {
                 if (authTab == AuthTab.SignIn) {
                   Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     AppTextField(strings["label_username"], value = signInUsername, onValueChange = { signInUsername = it })
-                    AppTextField(strings["password_current"], value = signInPassword, onValueChange = { signInPassword = it }, isPassword = true)
-                    if (fingerprintEnabled) {
+                    AppTextField(strings["password"], value = signInPassword, onValueChange = { signInPassword = it }, isPassword = true)
+                    if (fingerprintEnabled && hasRegistered) {
                       GhostButton(text = strings["auth_fingerprint"]) {
                         launchFingerprintAuth {
-                          showAuth = false
-                          isLoggedIn = true
-                          toastMessage = strings["login_success"]
-                          toastVisible = true
-                        }
-                      }
-                    }
-                    GradientButton(text = strings["auth_login"]) {
-                  if (signInUsername.isBlank() || signInPassword.isBlank()) {
-                    alertMessage = strings["signin_missing"]
-                    showAlert = true
-                  } else {
-                    scope.launch(Dispatchers.IO) {
-                      val matchedUser = fetchUserByCredentials(signInUsername.trim(), signInPassword)
-                      withContext(Dispatchers.Main) {
-                        if (matchedUser == null) {
-                          alertMessage = strings["signin_failed"]
-                          showAlert = true
-                        } else {
-                          currentUser = matchedUser
-                          isLoggedIn = true
-                          showAuth = false
-                          toastMessage = strings["login_success"]
-                          toastVisible = true
-                          scope.launch(Dispatchers.IO) {
-                            loadUserData(matchedUser.id)
+                          if (savedUsername.isBlank() || savedPassword.isBlank()) {
+                            alertMessage = strings["signin_missing"]
+                            showAlert = true
+                          } else {
+                            signInWithCredentials(savedUsername, savedPassword)
                           }
                         }
                       }
                     }
-                  }
-                }
+                    GradientButton(text = strings["auth_login"]) {
+                      signInWithCredentials(signInUsername, signInPassword)
+                    }
               }
                 } else {
                   Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -989,7 +1068,7 @@ fun TabunganApp() {
                             val dialog = DatePickerDialog(
                               context,
                               { _, year, month, dayOfMonth ->
-                                signUpBirthdate = String.format("%02d/%02d/%04d", dayOfMonth, month + 1, year)
+                                signUpBirthdate = String.format("%02d-%02d-%04d", dayOfMonth, month + 1, year)
                               },
                               calendar.get(java.util.Calendar.YEAR),
                               calendar.get(java.util.Calendar.MONTH),
@@ -1003,44 +1082,54 @@ fun TabunganApp() {
                     AppTextField(strings["label_bio"], value = signUpBio, onValueChange = { signUpBio = it }, minLines = 2)
                     AppTextField(strings["label_username"], value = signUpUsername, onValueChange = { signUpUsername = it })
                     AppTextField(strings["password"], value = signUpPassword, onValueChange = { signUpPassword = it }, isPassword = true)
-                  GradientButton(text = strings["auth_register"]) {
-                    if (signUpName.isBlank() || signUpUsername.isBlank() || signUpPassword.isBlank()) {
-                      alertMessage = strings["signup_missing"]
-                      showAlert = true
-                      return@GradientButton
-                    }
-                    val normalizedUsername = signUpUsername.trim()
-                    val normalizedEmail = signUpEmail.trim()
-                    scope.launch(Dispatchers.IO) {
-                      val exists = userExists(normalizedUsername, normalizedEmail)
-                      if (exists) {
-                        withContext(Dispatchers.Main) {
-                          alertMessage = strings["signup_exists"]
-                          showAlert = true
+                    GradientButton(text = strings["auth_register"]) {
+                      if (signUpName.isBlank() || signUpUsername.isBlank() || signUpPassword.isBlank()) {
+                        alertMessage = strings["signup_missing"]
+                        showAlert = true
+                        return@GradientButton
+                      }
+                      val normalizedUsername = signUpUsername.trim()
+                      val normalizedEmail = signUpEmail.trim()
+                      scope.launch(Dispatchers.IO) {
+                        try {
+                          val exists = userExists(normalizedUsername, normalizedEmail)
+                          if (exists) {
+                            withContext(Dispatchers.Main) {
+                              alertMessage = strings["signup_exists"]
+                              showAlert = true
+                            }
+                            return@launch
+                          }
+                          val newUser = SupabaseUser(
+                            name = signUpName,
+                            email = normalizedEmail,
+                            phone = signUpPhone,
+                            country = signUpCountry,
+                            bio = signUpBio,
+                            birthdate = signUpBirthdate,
+                            createdAt = Instant.now().toString(),
+                            username = normalizedUsername,
+                            password = signUpPassword,
+                          )
+                          insertUser(newUser)
+                          withContext(Dispatchers.Main) {
+                            isLoggedIn = false
+                            showAuth = true
+                            authTab = AuthTab.SignIn
+                            signInUsername = normalizedUsername
+                            signInPassword = ""
+                            persistCredentials(normalizedUsername, signUpPassword)
+                            toastMessage = strings["signup_success"]
+                            toastVisible = true
+                          }
+                        } catch (e: Exception) {
+                          withContext(Dispatchers.Main) {
+                            alertMessage = "Gagal daftar: ${e.localizedMessage ?: "Cek koneksi internet"}"
+                            showAlert = true
+                          }
                         }
-                        return@launch
-                      }
-                      val newUser = SupabaseUser(
-                        name = signUpName,
-                        email = normalizedEmail,
-                        phone = signUpPhone,
-                        country = signUpCountry,
-                        createdAt = Instant.now().toString(),
-                        username = normalizedUsername,
-                        password = signUpPassword,
-                      )
-                      insertUser(newUser)
-                      withContext(Dispatchers.Main) {
-                        isLoggedIn = false
-                        showAuth = true
-                        authTab = AuthTab.SignIn
-                        signInUsername = normalizedUsername
-                        signInPassword = ""
-                        toastMessage = strings["signup_success"]
-                        toastVisible = true
                       }
                     }
-                  }
                 }
               }
                 GhostButton(text = strings["close"]) { showAuth = false }
@@ -1178,8 +1267,7 @@ private fun Page.showHero(): Boolean {
   return this == Page.Income ||
     this == Page.Expense ||
     this == Page.Saving ||
-    this == Page.Dreams ||
-    this == Page.History
+    this == Page.Dreams
 }
 
 private fun clearAuthFields(
@@ -1217,6 +1305,7 @@ private fun TopBar(
   displayName: String,
   displayUsername: String,
   strings: AppStrings,
+  theme: ThemeName,
 ) {
   val colors = LocalAppColors.current
   Row(
@@ -1235,11 +1324,11 @@ private fun TopBar(
           .shadow(10.dp, RoundedCornerShape(16.dp)),
         contentAlignment = Alignment.Center,
       ) {
-        Text(text = "💰", fontSize = 26.sp)
+        Text(text = themeAppIcon(theme), fontSize = 26.sp)
       }
       Spacer(modifier = Modifier.width(12.dp))
       Column {
-        Text(text = strings["app_name"], fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        Text(text = strings["app_name"], fontWeight = FontWeight.Bold, fontSize = 20.sp, color = colors.text)
         Text(text = strings["app_tagline"], color = colors.muted, fontSize = 13.sp)
       }
     }
@@ -1258,7 +1347,7 @@ private fun TopBar(
             verticalAlignment = Alignment.CenterVertically,
           ) {
             Column {
-              Text(text = displayName, fontWeight = FontWeight.Bold)
+              Text(text = displayName, fontWeight = FontWeight.Bold, color = colors.text)
               Text(text = "@$displayUsername", color = colors.muted, fontSize = 12.sp)
             }
             Box(
@@ -1270,18 +1359,14 @@ private fun TopBar(
                 .clickable { onDismissMenu() },
               contentAlignment = Alignment.Center,
             ) {
-              Text(text = "x", fontWeight = FontWeight.Bold)
+              Text(text = "x", fontWeight = FontWeight.Bold, color = colors.text)
             }
           }
-          MenuItem(text = strings["menu_theme"], emoji = "🎨") { onNavigate(Page.Themes) }
-          MenuItem(text = strings["menu_admin"], emoji = "🛡️") {
-            onDismissMenu()
-            onAdmin()
-          }
-          MenuItem(text = strings["menu_calculator"], emoji = "🧮") { onNavigate(Page.Calculator) }
-          MenuItem(text = strings["menu_report"], emoji = "📈") { onNavigate(Page.Report) }
-          MenuItem(text = strings["menu_profile"], emoji = "👤") { onNavigate(Page.Profile) }
-          MenuItem(text = strings["menu_settings"], emoji = "⚙️") { onNavigate(Page.Settings) }
+          MenuItem(text = strings["menu_theme"], emoji = themePageIcon(theme, Page.Themes)) { onNavigate(Page.Themes) }
+          MenuItem(text = strings["menu_calculator"], emoji = themePageIcon(theme, Page.Calculator)) { onNavigate(Page.Calculator) }
+          MenuItem(text = strings["menu_report"], emoji = themePageIcon(theme, Page.Report)) { onNavigate(Page.Report) }
+          MenuItem(text = strings["menu_profile"], emoji = themePageIcon(theme, Page.Profile)) { onNavigate(Page.Profile) }
+          MenuItem(text = strings["menu_settings"], emoji = themePageIcon(theme, Page.Settings)) { onNavigate(Page.Settings) }
           MenuItem(text = strings["menu_logout"], emoji = "🚪", color = colors.danger) { onLogout() }
         }
       }
@@ -1294,6 +1379,7 @@ private fun BottomNav(
   current: Page,
   onSelect: (Page) -> Unit,
   strings: AppStrings,
+  theme: ThemeName,
   modifier: Modifier = Modifier,
 ) {
   val colors = LocalAppColors.current
@@ -1315,7 +1401,7 @@ private fun BottomNav(
           .clickable { onSelect(item) },
         horizontalAlignment = Alignment.CenterHorizontally,
       ) {
-        Text(text = item.icon, fontSize = 26.sp, color = if (active) colors.text else colors.muted)
+        Text(text = themePageIcon(theme, item), fontSize = 26.sp, color = if (active) colors.text else colors.muted)
         Text(
           text = pageLabel(item, strings),
           fontSize = 13.sp,
@@ -1443,34 +1529,33 @@ private fun LoadingLogo(text: String) {
     animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
     label = "loading-scale",
   )
-  Column(horizontalAlignment = Alignment.CenterHorizontally) {
-    Box(
-      modifier = Modifier
-        .size(140.dp)
-        .clip(RoundedCornerShape(28.dp))
-        .background(Color.White)
-        .shadow(20.dp, RoundedCornerShape(28.dp))
-        .padding(18.dp),
-      contentAlignment = Alignment.Center,
+  Box(modifier = Modifier.fillMaxSize()) {
+    Column(
+      modifier = Modifier.align(Alignment.Center),
+      horizontalAlignment = Alignment.CenterHorizontally,
     ) {
       Image(
         painter = painterResource(id = R.drawable.logo2),
         contentDescription = strings["logo_alt"],
-        modifier = Modifier.size((96.dp * scale)),
+        modifier = Modifier
+          .size(96.dp)
+          .graphicsLayer(scaleX = scale, scaleY = scale),
         contentScale = ContentScale.Fit,
       )
+      Spacer(modifier = Modifier.height(10.dp))
+      Text(
+        text = "CashFlow by Solvix Studio",
+        color = Color(0xFF9CA3AF),
+        fontSize = 12.sp,
+      )
     }
-    Spacer(modifier = Modifier.height(14.dp))
     Text(
-      text = text,
-      color = Color(0xFF6B7280),
-      style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-    )
-    Spacer(modifier = Modifier.height(6.dp))
-    Text(
-      text = "© 2026 Solvix Studio",
+      text = strings["footer"],
       color = Color(0xFF9CA3AF),
       fontSize = 11.sp,
+      modifier = Modifier
+        .align(Alignment.BottomCenter)
+        .padding(bottom = 18.dp),
     )
   }
 }

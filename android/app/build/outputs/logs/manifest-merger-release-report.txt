@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:2:1-19:12
-INJECTED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:2:1-19:12
-INJECTED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:2:1-19:12
-INJECTED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:2:1-19:12
+ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:2:1-21:12
+INJECTED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:2:1-21:12
+INJECTED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:2:1-21:12
+INJECTED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:2:1-21:12
 MERGED from [com.google.android.material:material:1.12.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\c7b2985d9f2b0b3367a31dac99927aea\transformed\material-1.12.0\AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.biometric:biometric:1.1.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\a0a42a6e72dba18370eff101632401c7\transformed\biometric-1.1.0\AndroidManifest.xml:17:1-29:12
 MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\557030d252ea1868222ebec014de0b15\transformed\constraintlayout-2.0.1\AndroidManifest.xml:2:1-11:12
@@ -90,9 +90,17 @@ MERGED from [com.russhwolf:multiplatform-settings-android:1.1.1] C:\Users\Yass\.
 		INJECTED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml
 	xmlns:android
 		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:2:11-69
+uses-permission#android.permission.INTERNET
+ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:3:3-65
+	android:name
+		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:3:20-62
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:4:3-77
+	android:name
+		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:4:20-74
 application
-ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:3:3-18:17
-INJECTED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:3:3-18:17
+ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:5:3-20:17
+INJECTED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:5:3-20:17
 MERGED from [com.google.android.material:material:1.12.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\c7b2985d9f2b0b3367a31dac99927aea\transformed\material-1.12.0\AndroidManifest.xml:22:5-20
 MERGED from [com.google.android.material:material:1.12.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\c7b2985d9f2b0b3367a31dac99927aea\transformed\material-1.12.0\AndroidManifest.xml:22:5-20
 MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\557030d252ea1868222ebec014de0b15\transformed\constraintlayout-2.0.1\AndroidManifest.xml:9:5-20
@@ -118,33 +126,33 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Yass\.gradle\cache
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.13.0] C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\64c9cdb532edc5b0352fe90af0e5c63d\transformed\core-1.13.0\AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:8:5-31
+		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:10:5-31
 	android:label
-		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:5:5-37
+		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:7:5-37
 	android:roundIcon
-		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:7:5-40
+		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:9:5-40
 	android:icon
-		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:6:5-35
+		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:8:5-35
 	android:allowBackup
-		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:4:5-31
+		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:6:5-31
 	android:theme
-		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:9:5-42
+		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:11:5-42
 activity#com.solvix.tabungan.MainActivity
-ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:10:5-17:16
+ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:12:5-19:16
 	android:exported
-		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:12:7-30
+		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:14:7-30
 	android:name
-		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:11:7-35
+		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:13:7-35
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:13:7-16:23
+ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:15:7-18:23
 action#android.intent.action.MAIN
-ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:14:9-61
+ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:16:9-61
 	android:name
-		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:14:17-58
+		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:16:17-58
 category#android.intent.category.LAUNCHER
-ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:15:9-69
+ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:17:9-69
 	android:name
-		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:15:19-66
+		ADDED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml:17:19-66
 uses-sdk
 INJECTED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from D:\Work\Solvix Studio\Website\Tabungan Android\android\app\src\main\AndroidManifest.xml

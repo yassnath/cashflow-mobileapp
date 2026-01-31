@@ -28,10 +28,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,11 +51,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.window.PopupProperties
 
 object AppDimens {
@@ -72,14 +76,16 @@ fun AppCard(
   content: @Composable ColumnScope.() -> Unit,
 ) {
   val colors = LocalAppColors.current
-  Column(
-    modifier = modifier
-      .shadow(AppDimens.shadow, shape)
-      .border(1.dp, colors.cardBorder, shape)
-      .background(colors.card, shape)
-      .padding(AppDimens.cardPadding),
-    content = content,
-  )
+  CompositionLocalProvider(LocalContentColor provides colors.text) {
+    Column(
+      modifier = modifier
+        .shadow(AppDimens.shadow, shape)
+        .border(1.dp, colors.cardBorder, shape)
+        .background(colors.card, shape)
+        .padding(AppDimens.cardPadding),
+      content = content,
+    )
+  }
 }
 
 @Composable
@@ -88,14 +94,16 @@ fun MiniCard(
   content: @Composable ColumnScope.() -> Unit,
 ) {
   val colors = LocalAppColors.current
-  Column(
-    modifier = modifier
-      .shadow(10.dp, RoundedCornerShape(AppDimens.radiusMd))
-      .border(1.dp, colors.cardBorder, RoundedCornerShape(AppDimens.radiusMd))
-      .background(colors.card, RoundedCornerShape(AppDimens.radiusMd))
-      .padding(12.dp),
-    content = content,
-  )
+  CompositionLocalProvider(LocalContentColor provides colors.text) {
+    Column(
+      modifier = modifier
+        .shadow(10.dp, RoundedCornerShape(AppDimens.radiusMd))
+        .border(1.dp, colors.cardBorder, RoundedCornerShape(AppDimens.radiusMd))
+        .background(colors.card, RoundedCornerShape(AppDimens.radiusMd))
+        .padding(12.dp),
+      content = content,
+    )
+  }
 }
 
 @Composable
@@ -154,17 +162,23 @@ fun ChipButton(
   onClick: () -> Unit,
 ) {
   val colors = LocalAppColors.current
+  val theme = LocalThemeName.current
+  val borderColor = if (isDarkTheme(theme)) {
+    Color.White.copy(alpha = 0.6f)
+  } else {
+    colors.cardBorder.copy(alpha = 0.5f)
+  }
   Box(
     modifier = modifier
       .clip(RoundedCornerShape(999.dp))
       .background(colors.card)
-      .border(1.dp, colors.cardBorder.copy(alpha = 0.5f), RoundedCornerShape(999.dp))
+      .border(1.dp, borderColor, RoundedCornerShape(999.dp))
       .shadow(10.dp, RoundedCornerShape(999.dp))
       .clickable(onClick = onClick)
       .padding(horizontal = 14.dp, vertical = 10.dp),
     contentAlignment = Alignment.Center,
   ) {
-    Text(text = text, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+    Text(text = text, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = colors.text)
   }
 }
 
@@ -200,6 +214,8 @@ fun AppTextField(
   minLines: Int = 1,
   trailing: (@Composable () -> Unit)? = null,
   isPassword: Boolean = false,
+  textFontSize: TextUnit = TextUnit.Unspecified,
+  placeholderFontSize: TextUnit = TextUnit.Unspecified,
 ) {
   val colors = LocalAppColors.current
   var showPassword by remember { mutableStateOf(false) }
@@ -225,7 +241,11 @@ fun AppTextField(
       onValueChange = onValueChange,
       placeholder = {
         if (placeholder.isNotBlank()) {
-          Text(text = placeholder, color = colors.placeholder)
+          Text(
+            text = placeholder,
+            color = colors.placeholder,
+            fontSize = if (placeholderFontSize == TextUnit.Unspecified) 14.sp else placeholderFontSize,
+          )
         }
       },
       keyboardOptions = keyboardOptions,
@@ -233,6 +253,15 @@ fun AppTextField(
       minLines = minLines,
       trailingIcon = trailingIcon,
       visualTransformation = if (isPassword && !showPassword) androidx.compose.ui.text.input.PasswordVisualTransformation() else VisualTransformation.None,
+      textStyle = if (textFontSize == TextUnit.Unspecified) {
+        MaterialTheme.typography.bodyMedium
+      } else {
+        TextStyle(
+          fontFamily = MaterialTheme.typography.bodyMedium.fontFamily,
+          fontWeight = MaterialTheme.typography.bodyMedium.fontWeight,
+          fontSize = textFontSize,
+        )
+      },
       modifier = Modifier
         .fillMaxWidth()
         .heightIn(min = 52.dp),
@@ -321,7 +350,7 @@ fun AppDropdown(
             onSelected(option)
             expanded = false
           },
-          contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+          contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
           modifier = Modifier
             .fillMaxWidth()
             .clip(itemShape)
@@ -337,7 +366,7 @@ fun AppDropdown(
               if (isSelected) Color.Transparent else colors.cardBorder,
               itemShape,
             )
-            .padding(vertical = 1.dp),
+            .padding(vertical = 0.dp),
         )
       }
     }

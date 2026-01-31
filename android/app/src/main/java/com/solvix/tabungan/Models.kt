@@ -85,6 +85,7 @@ fun parseDate(text: String): Long? {
   return try {
     val formats = listOf(
       SimpleDateFormat("yyyy-MM-dd", Locale.US),
+      SimpleDateFormat("dd-MM-yyyy", Locale.US),
       SimpleDateFormat("dd/MM/yyyy", Locale.US),
     )
     val date = formats.firstNotNullOfOrNull { format ->

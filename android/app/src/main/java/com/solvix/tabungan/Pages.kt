@@ -19,12 +19,20 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.Date
 
 @Composable
 fun HeroSummary(
@@ -50,6 +59,7 @@ fun HeroSummary(
   expenseTotal: Int,
   strings: AppStrings,
 ) {
+  val colors = LocalAppColors.current
   val options = SummaryRange.values().toList()
   AppCard {
     Row(
@@ -61,6 +71,7 @@ fun HeroSummary(
         text = "${strings["summary_title"]} ${summaryRangeLabel(range, strings)}",
         fontWeight = FontWeight.Bold,
         fontSize = 16.sp,
+        color = colors.text,
       )
       AppDropdown(
         label = "",
@@ -87,6 +98,81 @@ fun HeroSummary(
   }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateField(
+  label: String,
+  value: String,
+  onValueChange: (String) -> Unit,
+  placeholder: String,
+) {
+  val colors = LocalAppColors.current
+  val strings = LocalStrings.current
+  var showPicker by remember { mutableStateOf(false) }
+  val initialMillis = parseDate(value) ?: System.currentTimeMillis()
+  val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
+  val formatter = remember { SimpleDateFormat("dd-MM-yyyy", Locale.US) }
+
+  AppTextField(
+    label = label,
+    value = value,
+    onValueChange = onValueChange,
+    placeholder = placeholder,
+    textFontSize = 12.sp,
+    placeholderFontSize = 11.sp,
+    trailing = {
+      Text(
+        text = "📅",
+        color = colors.muted,
+        modifier = Modifier.clickable { showPicker = true },
+      )
+    },
+  )
+
+  if (showPicker) {
+    DatePickerDialog(
+      onDismissRequest = { showPicker = false },
+      confirmButton = {
+        TextButton(
+          onClick = {
+            val selected = datePickerState.selectedDateMillis
+            if (selected != null) {
+              onValueChange(formatter.format(Date(selected)))
+            }
+            showPicker = false
+          },
+        ) {
+          Text(text = strings["ok"], color = colors.text)
+        }
+      },
+      dismissButton = {
+        TextButton(onClick = { showPicker = false }) {
+          Text(text = strings["confirm_cancel"], color = colors.muted)
+        }
+      },
+      colors = DatePickerDefaults.colors(
+        containerColor = colors.card,
+        titleContentColor = colors.text,
+        headlineContentColor = colors.text,
+        weekdayContentColor = colors.muted,
+        subheadContentColor = colors.muted,
+        dayContentColor = colors.text,
+        selectedDayContainerColor = colors.accent,
+        selectedDayContentColor = Color.White,
+        todayDateBorderColor = colors.accent2,
+        todayContentColor = colors.text,
+      ),
+    ) {
+      DatePicker(
+        state = datePickerState,
+        title = null,
+        headline = null,
+        showModeToggle = false,
+      )
+    }
+  }
+}
+
 @Composable
 fun IncomePage(
   entries: List<MoneyEntry>,
@@ -105,7 +191,7 @@ fun IncomePage(
   var editingId by rememberSaveable { mutableStateOf<String?>(null) }
 
   Column {
-    SectionTitle(icon = "📥", title = strings["section_income_title"], subtitle = strings["section_income_subtitle"])
+    SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Income), title = strings["section_income_title"], subtitle = strings["section_income_subtitle"])
     AppCard {
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppTextField(
@@ -114,7 +200,7 @@ fun IncomePage(
           onValueChange = { amount = it },
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
-        AppTextField(strings["label_date"], value = date, onValueChange = { date = it }, placeholder = strings["placeholder_date"])
+        DateField(strings["label_date"], value = date, onValueChange = { date = it }, placeholder = strings["placeholder_date"])
         AppTextField(strings["label_category"], value = category, onValueChange = { category = it }, placeholder = strings["placeholder_category_income"])
         AppDropdown(
           label = strings["label_source"],
@@ -196,7 +282,7 @@ fun ExpensePage(
   var editingId by rememberSaveable { mutableStateOf<String?>(null) }
 
   Column {
-    SectionTitle(icon = "📤", title = strings["section_expense_title"], subtitle = strings["section_expense_subtitle"])
+    SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Expense), title = strings["section_expense_title"], subtitle = strings["section_expense_subtitle"])
     AppCard {
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppTextField(
@@ -205,7 +291,7 @@ fun ExpensePage(
           onValueChange = { amount = it },
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
-        AppTextField(strings["label_date"], value = date, onValueChange = { date = it }, placeholder = strings["placeholder_date"])
+        DateField(strings["label_date"], value = date, onValueChange = { date = it }, placeholder = strings["placeholder_date"])
         AppTextField(strings["label_category"], value = category, onValueChange = { category = it }, placeholder = strings["placeholder_category_expense"])
         AppDropdown(
           label = strings["label_method"],
@@ -284,11 +370,11 @@ fun SavingPage(
   var editingId by rememberSaveable { mutableStateOf<String?>(null) }
 
   Column {
-    SectionTitle(icon = "🏦", title = strings["section_saving_title"], subtitle = strings["section_saving_subtitle"])
+    SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Saving), title = strings["section_saving_title"], subtitle = strings["section_saving_subtitle"])
     AppCard {
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppTextField(strings["label_amount"], value = amount, onValueChange = { amount = it }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-        AppTextField(strings["label_date"], value = date, onValueChange = { date = it }, placeholder = strings["placeholder_date"])
+        DateField(strings["label_date"], value = date, onValueChange = { date = it }, placeholder = strings["placeholder_date"])
         AppTextField(strings["label_goal"], value = goal, onValueChange = { goal = it }, placeholder = strings["placeholder_goal"])
         AppTextField(strings["label_note"], value = note, onValueChange = { note = it }, placeholder = strings["placeholder_note"], minLines = 2)
         GradientButton(
@@ -342,13 +428,13 @@ fun DreamsPage(
   var editingId by rememberSaveable { mutableStateOf<String?>(null) }
 
   Column {
-    SectionTitle(icon = "🌟", title = strings["section_dreams_title"], subtitle = strings["section_dreams_subtitle"])
+    SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Dreams), title = strings["section_dreams_title"], subtitle = strings["section_dreams_subtitle"])
     AppCard {
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppTextField(strings["label_target_name"], value = title, onValueChange = { title = it }, placeholder = strings["placeholder_target"])
         AppTextField(strings["label_target_amount"], value = target, onValueChange = { target = it }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
         AppTextField(strings["label_target_current"], value = current, onValueChange = { current = it }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-        AppTextField(strings["label_deadline"], value = deadline, onValueChange = { deadline = it }, placeholder = strings["placeholder_date"])
+        DateField(strings["label_deadline"], value = deadline, onValueChange = { deadline = it }, placeholder = strings["placeholder_date"])
         AppTextField(strings["label_note"], value = note, onValueChange = { note = it }, placeholder = strings["placeholder_strategy"], minLines = 2)
         GradientButton(
           text = if (editingId == null) strings["save_dream"] else strings["update_dream"],
@@ -392,11 +478,11 @@ fun DreamsPage(
 fun CalculatorPage() {
   var display by rememberSaveable { mutableStateOf("0") }
   val strings = LocalStrings.current
+  val colors = LocalAppColors.current
   Column {
-    SectionTitle(icon = "🧮", title = strings["calculator_title"], subtitle = strings["calculator_subtitle"])
+    SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Calculator), title = strings["calculator_title"], subtitle = strings["calculator_subtitle"])
     AppCard {
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        val colors = LocalAppColors.current
         Box(
           modifier = Modifier
             .fillMaxWidth()
@@ -405,7 +491,7 @@ fun CalculatorPage() {
             .padding(12.dp),
           contentAlignment = Alignment.CenterEnd,
         ) {
-          Text(text = display, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+          Text(text = display, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = colors.text)
         }
 
         val keys = listOf(
@@ -487,6 +573,7 @@ fun ReportPage(
   onToast: (String) -> Unit,
 ) {
   val colors = LocalAppColors.current
+  val theme = LocalThemeName.current
   val incomeTotal = income.sumOf { it.amount }
   val expenseTotal = expense.sumOf { it.amount }
   var modeIndex by rememberSaveable { mutableStateOf(0) }
@@ -494,18 +581,19 @@ fun ReportPage(
   val yearly = buildYearlySeries(income, expense)
   val series = if (modeIndex == 0) monthly else yearly
   val totals = if (modeIndex == 0) totalsFromSeries(monthly) else totalsFromSeries(yearly)
+  val chartBackground = if (isDarkTheme(theme)) {
+    Brush.linearGradient(listOf(Color(0xFF2A2F4D), Color(0xFF3A4270)))
+  } else {
+    Brush.linearGradient(listOf(Color(0xFF0F1220), Color(0xFF1B2034)))
+  }
   Column {
-    SectionTitle(icon = "📈", title = strings["section_report_title"])
+    SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Report), title = strings["section_report_title"])
     Box(
       modifier = Modifier
         .fillMaxWidth()
         .shadow(12.dp, RoundedCornerShape(AppDimens.radiusLg))
         .clip(RoundedCornerShape(AppDimens.radiusLg))
-        .background(
-          Brush.linearGradient(
-            listOf(Color(0xFF0F1220), Color(0xFF1B2034)),
-          ),
-        )
+        .background(chartBackground)
         .padding(16.dp),
     ) {
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -565,8 +653,10 @@ fun ReportPage(
 @Composable
 private fun ReportLine(label: String, value: String, positive: Boolean) {
   val colors = LocalAppColors.current
+  val theme = LocalThemeName.current
+  val labelColor = if (isDarkTheme(theme)) colors.text else Color.White.copy(alpha = 0.8f)
   Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-    Text(text = label, color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
+    Text(text = label, color = labelColor, fontSize = 13.sp)
     Text(
       text = value,
       fontWeight = FontWeight.Bold,
@@ -578,6 +668,7 @@ private fun ReportLine(label: String, value: String, positive: Boolean) {
 
 @Composable
 fun HistoryPage(entries: List<MoneyEntry>, strings: AppStrings) {
+  val colors = LocalAppColors.current
   var fromDate by rememberSaveable { mutableStateOf("") }
   var toDate by rememberSaveable { mutableStateOf("") }
   val filtered = entries.filter { entry ->
@@ -592,18 +683,18 @@ fun HistoryPage(entries: List<MoneyEntry>, strings: AppStrings) {
   val expenseTotal = filtered.filter { it.type == EntryType.Expense }.sumOf { it.amount }
 
   Column {
-    SectionTitle(icon = "📒", title = strings["section_history_title"], subtitle = strings["section_history_subtitle"])
+    SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.History), title = strings["section_history_title"], subtitle = strings["section_history_subtitle"])
     AppCard {
       Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Column(modifier = Modifier.weight(1f)) {
-          Text(text = strings["from"], fontSize = 11.sp)
+          Text(text = strings["from"], fontSize = 11.sp, color = colors.text)
           Spacer(modifier = Modifier.height(4.dp))
-          AppTextField(label = "", value = fromDate, onValueChange = { fromDate = it }, placeholder = strings["placeholder_date"])
+          DateField(label = "", value = fromDate, onValueChange = { fromDate = it }, placeholder = strings["placeholder_date"])
         }
         Column(modifier = Modifier.weight(1f)) {
-          Text(text = strings["to"], fontSize = 11.sp)
+          Text(text = strings["to"], fontSize = 11.sp, color = colors.text)
           Spacer(modifier = Modifier.height(4.dp))
-          AppTextField(label = "", value = toDate, onValueChange = { toDate = it }, placeholder = strings["placeholder_date"])
+          DateField(label = "", value = toDate, onValueChange = { toDate = it }, placeholder = strings["placeholder_date"])
         }
       }
     }
@@ -618,19 +709,19 @@ fun HistoryPage(entries: List<MoneyEntry>, strings: AppStrings) {
       }
     }
 
-  EntryList(
-    title = strings["section_history_title"],
-    entries = filtered,
-    onEdit = {},
-    onDelete = {},
-    readonly = true,
-  )
-  if (filtered.isEmpty()) {
-    Spacer(modifier = Modifier.height(10.dp))
-    AppCard {
-      Text(text = strings["no_transactions"], color = LocalAppColors.current.muted, fontSize = 12.sp)
+    EntryList(
+      title = strings["section_history_title"],
+      entries = filtered,
+      onEdit = {},
+      onDelete = {},
+      readonly = true,
+    )
+    if (filtered.isEmpty()) {
+      Spacer(modifier = Modifier.height(10.dp))
+      AppCard {
+        Text(text = strings["no_transactions"], color = colors.muted, fontSize = 12.sp)
+      }
     }
-  }
   }
 }
 
@@ -663,7 +754,7 @@ fun ProfilePage(
   }
 
   Column {
-    SectionTitle(icon = "👤", title = strings["section_profile_title"], subtitle = strings["section_profile_subtitle"])
+    SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Profile), title = strings["section_profile_title"], subtitle = strings["section_profile_subtitle"])
     AppCard {
       Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ProfileLine(label = strings["label_name"], value = name.ifBlank { strings["guest"] })
@@ -675,6 +766,7 @@ fun ProfilePage(
         ProfileLine(label = strings["label_username"], value = username.ifBlank { "-" })
       }
     }
+    Spacer(modifier = Modifier.height(12.dp))
     AppCard {
       Text(text = strings["profile_update"], fontWeight = FontWeight.Bold, fontSize = 16.sp)
       Spacer(modifier = Modifier.height(12.dp))
@@ -709,6 +801,7 @@ fun ProfilePage(
         }
       }
     }
+    Spacer(modifier = Modifier.height(12.dp))
     GhostButton(text = strings["menu_logout"], onClick = onLogout, modifier = Modifier.padding(bottom = 10.dp))
   }
 }
@@ -717,8 +810,8 @@ fun ProfilePage(
 private fun ProfileLine(label: String, value: String) {
   val colors = LocalAppColors.current
   Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-    Text(text = label, color = colors.muted, fontSize = 12.sp)
-    Text(text = value, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+    Text(text = label, color = colors.text, fontSize = 12.sp)
+    Text(text = value, color = colors.text, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
   }
 }
 
@@ -731,6 +824,7 @@ fun SettingsPage(
   strings: AppStrings,
   onToast: (String) -> Unit,
 ) {
+  val colors = LocalAppColors.current
   var langIndex by rememberSaveable { mutableStateOf(0) }
   var currentPassword by rememberSaveable { mutableStateOf("") }
   var newPassword by rememberSaveable { mutableStateOf("") }
@@ -740,9 +834,9 @@ fun SettingsPage(
     LaunchedEffect(language) {
       langIndex = if (language == AppLanguage.ID) 0 else 1
     }
-    SectionTitle(icon = "⚙️", title = strings["section_settings_title"], subtitle = strings["section_settings_subtitle"])
+    SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Settings), title = strings["section_settings_title"], subtitle = strings["section_settings_subtitle"])
     AppCard {
-      Text(text = strings["settings_security"], fontWeight = FontWeight.Bold, fontSize = 16.sp)
+      Text(text = strings["settings_security"], fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.text)
       Spacer(modifier = Modifier.height(10.dp))
       Row(
         modifier = Modifier.fillMaxWidth(),
@@ -750,10 +844,10 @@ fun SettingsPage(
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Column(modifier = Modifier.weight(1f)) {
-          Text(text = strings["settings_fingerprint"], fontSize = 12.sp)
+          Text(text = strings["settings_fingerprint"], fontSize = 12.sp, color = colors.text)
           Text(
             text = strings["settings_fingerprint_desc"],
-            color = LocalAppColors.current.muted,
+            color = colors.muted,
             fontSize = 11.sp,
           )
         }
@@ -763,15 +857,16 @@ fun SettingsPage(
         )
       }
     }
+    Spacer(modifier = Modifier.height(12.dp))
     AppCard {
-      Text(text = strings["settings_language"], fontWeight = FontWeight.Bold, fontSize = 16.sp)
+      Text(text = strings["settings_language"], fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.text)
       Spacer(modifier = Modifier.height(10.dp))
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        Text(text = strings["settings_language"], fontSize = 12.sp)
+        Text(text = strings["settings_language"], fontSize = 12.sp, color = colors.text)
         ChipToggle(
           options = listOf("IN", "EN"),
           selectedIndex = langIndex,
@@ -782,8 +877,9 @@ fun SettingsPage(
         )
       }
     }
+    Spacer(modifier = Modifier.height(12.dp))
     AppCard {
-      Text(text = strings["settings_change_password"], fontWeight = FontWeight.Bold, fontSize = 16.sp)
+      Text(text = strings["settings_change_password"], fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.text)
       Spacer(modifier = Modifier.height(12.dp))
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppTextField(strings["password_current"], value = currentPassword, onValueChange = { currentPassword = it }, isPassword = true)
@@ -801,36 +897,36 @@ fun SettingsPage(
 fun ThemesPage(currentTheme: ThemeName, onThemeSelected: (ThemeName) -> Unit) {
   val strings = LocalStrings.current
   Column {
-    SectionTitle(icon = "🎨", title = strings["section_themes_title"], subtitle = strings["section_themes_subtitle"])
+    SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Themes), title = strings["section_themes_title"], subtitle = strings["section_themes_subtitle"])
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-      ThemeCard("☀️", strings["theme_standard_light"], currentTheme == ThemeName.StandardLight, Color(0xFFFFF6E7)) {
+      ThemeCard(themeAppIcon(ThemeName.StandardLight), strings["theme_standard_light"], currentTheme == ThemeName.StandardLight, Color(0xFFFFF6E7)) {
         onThemeSelected(ThemeName.StandardLight)
       }
-      ThemeCard("🌘", strings["theme_standard_dark"], currentTheme == ThemeName.StandardDark, Color(0xFFE6EBFF)) {
+      ThemeCard(themeAppIcon(ThemeName.StandardDark), strings["theme_standard_dark"], currentTheme == ThemeName.StandardDark, Color(0xFFE6EBFF)) {
         onThemeSelected(ThemeName.StandardDark)
       }
-      ThemeCard("🧁", strings["theme_food"], currentTheme == ThemeName.CartoonFood, Color(0xFFFFF0DC)) {
+      ThemeCard(themeAppIcon(ThemeName.CartoonFood), strings["theme_food"], currentTheme == ThemeName.CartoonFood, Color(0xFFFFF0DC)) {
         onThemeSelected(ThemeName.CartoonFood)
       }
-      ThemeCard("🌌", strings["theme_space"], currentTheme == ThemeName.CartoonSpace, Color(0xFFE3E9FF)) {
+      ThemeCard(themeAppIcon(ThemeName.CartoonSpace), strings["theme_space"], currentTheme == ThemeName.CartoonSpace, Color(0xFFE3E9FF)) {
         onThemeSelected(ThemeName.CartoonSpace)
       }
-      ThemeCard("🧟", strings["theme_monster"], currentTheme == ThemeName.CartoonMonster, Color(0xFFE9FFF2)) {
+      ThemeCard(themeAppIcon(ThemeName.CartoonMonster), strings["theme_monster"], currentTheme == ThemeName.CartoonMonster, Color(0xFFE9FFF2)) {
         onThemeSelected(ThemeName.CartoonMonster)
       }
-      ThemeCard("🦸‍♂️", strings["theme_hero"], currentTheme == ThemeName.CartoonHero, Color(0xFFFFE9EE)) {
+      ThemeCard(themeAppIcon(ThemeName.CartoonHero), strings["theme_hero"], currentTheme == ThemeName.CartoonHero, Color(0xFFFFE9EE)) {
         onThemeSelected(ThemeName.CartoonHero)
       }
-      ThemeCard("🐬", strings["theme_sea"], currentTheme == ThemeName.CartoonSea, Color(0xFFE6F6FF)) {
+      ThemeCard(themeAppIcon(ThemeName.CartoonSea), strings["theme_sea"], currentTheme == ThemeName.CartoonSea, Color(0xFFE6F6FF)) {
         onThemeSelected(ThemeName.CartoonSea)
       }
-      ThemeCard("🌿", strings["theme_plant"], currentTheme == ThemeName.CartoonPlant, Color(0xFFEFFFE5)) {
+      ThemeCard(themeAppIcon(ThemeName.CartoonPlant), strings["theme_plant"], currentTheme == ThemeName.CartoonPlant, Color(0xFFEFFFE5)) {
         onThemeSelected(ThemeName.CartoonPlant)
       }
-      ThemeCard("💖", strings["theme_pinky"], currentTheme == ThemeName.CartoonPinky, Color(0xFFFFE6F2)) {
+      ThemeCard(themeAppIcon(ThemeName.CartoonPinky), strings["theme_pinky"], currentTheme == ThemeName.CartoonPinky, Color(0xFFFFE6F2)) {
         onThemeSelected(ThemeName.CartoonPinky)
       }
-      ThemeCard("🎉", strings["theme_colorful"], currentTheme == ThemeName.CartoonColorful, Color(0xFFEEF3FF)) {
+      ThemeCard(themeAppIcon(ThemeName.CartoonColorful), strings["theme_colorful"], currentTheme == ThemeName.CartoonColorful, Color(0xFFEEF3FF)) {
         onThemeSelected(ThemeName.CartoonColorful)
       }
     }
@@ -846,8 +942,9 @@ private fun EntryList(
   readonly: Boolean = false,
 ) {
   if (entries.isEmpty()) return
+  val colors = LocalAppColors.current
   Spacer(modifier = Modifier.height(12.dp))
-  Text(text = title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+  Text(text = title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = colors.text)
   Spacer(modifier = Modifier.height(8.dp))
   LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
     items(entries, key = { it.id }) { entry ->
@@ -867,8 +964,8 @@ private fun EntryCard(
   val strings = LocalStrings.current
   AppCard(shape = RoundedCornerShape(AppDimens.radiusMd)) {
     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-      Text(text = entry.category, fontWeight = FontWeight.Bold)
-      Text(text = formatRupiah(entry.amount), fontWeight = FontWeight.Bold)
+      Text(text = entry.category, fontWeight = FontWeight.Bold, color = colors.text)
+      Text(text = formatRupiah(entry.amount), fontWeight = FontWeight.Bold, color = colors.text)
     }
     Text(text = "${entry.date} • ${entry.sourceOrMethod}", color = colors.muted, fontSize = 12.sp)
     if (entry.note.isNotBlank()) {

@@ -61,9 +61,9 @@ private val StandardLightPalette = AppColors(
 private val StandardDarkPalette = AppColors(
   bg = Color(0xFF0F1220),
   bg2 = Color(0xFF1B2034),
-  text = Color(0xFFF8F6FF),
-  muted = Color(0xFFA1A7C2),
-  placeholder = Color(0xFF9AA3B4),
+  text = Color(0xFFFFFFFF),
+  muted = Color(0xCCFFFFFF),
+  placeholder = Color(0x99FFFFFF),
   card = Color(0xFF14182C),
   cardBorder = Color(0x14FFFFFF),
   fieldBorder = Color(0x59FFFFFF),
@@ -89,9 +89,9 @@ private val CartoonFoodPalette = AppColors(
 private val CartoonSpacePalette = AppColors(
   bg = Color(0xFF101236),
   bg2 = Color(0xFF1A1F4D),
-  text = Color(0xFFF6F4FF),
-  muted = Color(0xFFB3B0DD),
-  placeholder = Color(0xFF9AA3B4),
+  text = Color(0xFFFFFFFF),
+  muted = Color(0xCCFFFFFF),
+  placeholder = Color(0x99FFFFFF),
   card = Color(0xFF171C44),
   cardBorder = Color(0x1AFFFFFF),
   fieldBorder = Color(0x4DFFFFFF),
@@ -198,6 +198,7 @@ private val ThemePalettes = mapOf(
 )
 
 val LocalAppColors = staticCompositionLocalOf { StandardLightPalette }
+val LocalThemeName = staticCompositionLocalOf { ThemeName.StandardLight }
 
 private val AppFontFamily = FontFamily(
   Font(R.font.fredoka_regular, FontWeight.Normal),
@@ -219,13 +220,20 @@ private val AppTypography = Typography(
 fun TabunganTheme(theme: ThemeName, content: @Composable () -> Unit) {
   val palette = ThemePalettes[theme] ?: StandardLightPalette
   val colorScheme = colorSchemeFor(theme, palette)
-  CompositionLocalProvider(LocalAppColors provides palette) {
+  CompositionLocalProvider(
+    LocalAppColors provides palette,
+    LocalThemeName provides theme,
+  ) {
     MaterialTheme(
       colorScheme = colorScheme,
       typography = AppTypography,
       content = content,
     )
   }
+}
+
+fun isDarkTheme(theme: ThemeName): Boolean {
+  return theme == ThemeName.StandardDark || theme == ThemeName.CartoonSpace
 }
 
 private fun colorSchemeFor(theme: ThemeName, palette: AppColors): ColorScheme {
