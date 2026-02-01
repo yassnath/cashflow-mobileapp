@@ -1,7 +1,9 @@
 package com.solvix.tabungan
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,7 +24,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -162,12 +164,7 @@ fun ChipButton(
   onClick: () -> Unit,
 ) {
   val colors = LocalAppColors.current
-  val theme = LocalThemeName.current
-  val borderColor = if (isDarkTheme(theme)) {
-    Color.White.copy(alpha = 0.6f)
-  } else {
-    colors.cardBorder.copy(alpha = 0.5f)
-  }
+  val borderColor = colors.accent
   Box(
     modifier = modifier
       .clip(RoundedCornerShape(999.dp))
@@ -288,6 +285,12 @@ fun AppDropdown(
   modifier: Modifier = Modifier,
 ) {
   val colors = LocalAppColors.current
+  val theme = LocalThemeName.current
+  val menuBorderColor = if (isDarkTheme(theme)) {
+    Color.White.copy(alpha = 0.7f)
+  } else {
+    colors.text.copy(alpha = 0.35f)
+  }
   var expanded by remember { mutableStateOf(false) }
   var fieldWidth by remember { mutableStateOf(0.dp) }
   val density = LocalDensity.current
@@ -326,48 +329,49 @@ fun AppDropdown(
       modifier = Modifier
         .width(fieldWidth)
         .heightIn(max = 520.dp)
-        .shadow(12.dp, RoundedCornerShape(16.dp))
-        .background(colors.card)
-        .border(1.dp, colors.cardBorder, RoundedCornerShape(16.dp))
-        .padding(4.dp),
+        .background(Color.Transparent),
       properties = PopupProperties(focusable = true),
     ) {
-      options.forEachIndexed { index, option ->
-        if (index > 0) {
-          Spacer(modifier = Modifier.height(4.dp))
-        }
-        val isSelected = option == selected
-        val itemShape = RoundedCornerShape(10.dp)
-        DropdownMenuItem(
-          text = {
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .clip(RoundedCornerShape(18.dp))
+          .background(colors.card)
+          .border(1.dp, menuBorderColor, RoundedCornerShape(18.dp))
+          .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+      ) {
+        options.forEach { option ->
+          val isSelected = option == selected
+          val itemShape = RoundedCornerShape(10.dp)
+          val itemBackground = if (isSelected) {
+            Brush.linearGradient(listOf(colors.accent, colors.accent2))
+          } else {
+            Brush.linearGradient(listOf(colors.bg2, colors.bg2))
+          }
+          Box(
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(32.dp)
+              .clip(itemShape)
+              .background(itemBackground)
+              .clickable {
+                onSelected(option)
+                expanded = false
+              }
+              .padding(10.dp),
+            contentAlignment = Alignment.CenterStart,
+          ) {
             Text(
-              option,
+              text = option,
               color = if (isSelected) Color.White else colors.text,
               fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+              fontSize = 12.sp,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
             )
-          },
-          onClick = {
-            onSelected(option)
-            expanded = false
-          },
-          contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-          modifier = Modifier
-            .fillMaxWidth()
-            .clip(itemShape)
-            .background(
-              if (isSelected) {
-                Brush.linearGradient(listOf(colors.accent, colors.accent2))
-              } else {
-                Brush.linearGradient(listOf(colors.bg2, colors.bg2))
-              },
-            )
-            .border(
-              1.dp,
-              if (isSelected) Color.Transparent else colors.cardBorder,
-              itemShape,
-            )
-            .padding(vertical = 0.dp),
-        )
+          }
+        }
       }
     }
   }
@@ -501,8 +505,20 @@ fun ToastMessage(text: String, visible: Boolean, modifier: Modifier = Modifier) 
         .padding(horizontal = 18.dp, vertical = 12.dp),
       contentAlignment = Alignment.Center,
     ) {
-      Text(text = text, fontWeight = FontWeight.Bold)
+      Text(text = text, fontWeight = FontWeight.Bold, color = colors.text)
     }
+  }
+}
+
+@Composable
+fun FadeInPage(key: Any?, content: @Composable () -> Unit) {
+  var visible by remember(key) { mutableStateOf(false) }
+  LaunchedEffect(key) { visible = true }
+  AnimatedVisibility(
+    visible = visible,
+    enter = fadeIn(animationSpec = tween(durationMillis = 220)),
+  ) {
+    content()
   }
 }
 

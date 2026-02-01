@@ -733,186 +733,188 @@ fun TabunganApp() {
               }
 
               item {
-                when (currentPage) {
-                  Page.Income -> IncomePage(
-                    entries = incomeEntries,
-                    onSave = { entry ->
-                      incomeEntries.add(entry)
-                      if (activeUserId.isNotBlank()) {
-                        scope.launch(Dispatchers.IO) { insertMoneyEntry(activeUserId, entry) }
-                      }
-                    },
-                    onUpdate = { entry ->
-                      val index = incomeEntries.indexOfFirst { it.id == entry.id }
-                      if (index >= 0) incomeEntries[index] = entry
-                      if (activeUserId.isNotBlank()) {
-                        scope.launch(Dispatchers.IO) { updateMoneyEntry(entry) }
-                      }
-                    },
-                    onDelete = { entry ->
-                      requestConfirm(strings["confirm_delete_income"]) {
-                        incomeEntries.removeAll { it.id == entry.id }
+                FadeInPage(key = currentPage) {
+                  when (currentPage) {
+                    Page.Income -> IncomePage(
+                      entries = incomeEntries,
+                      onSave = { entry ->
+                        incomeEntries.add(entry)
                         if (activeUserId.isNotBlank()) {
-                          scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
+                          scope.launch(Dispatchers.IO) { insertMoneyEntry(activeUserId, entry) }
                         }
-                      }
-                    },
-                    strings = strings,
-                  )
-                  Page.Expense -> ExpensePage(
-                    entries = expenseEntries,
-                    onSave = { entry ->
-                      expenseEntries.add(entry)
-                      if (activeUserId.isNotBlank()) {
-                        scope.launch(Dispatchers.IO) { insertMoneyEntry(activeUserId, entry) }
-                      }
-                    },
-                    onUpdate = { entry ->
-                      val index = expenseEntries.indexOfFirst { it.id == entry.id }
-                      if (index >= 0) expenseEntries[index] = entry
-                      if (activeUserId.isNotBlank()) {
-                        scope.launch(Dispatchers.IO) { updateMoneyEntry(entry) }
-                      }
-                    },
-                    onDelete = { entry ->
-                      requestConfirm(strings["confirm_delete_expense"]) {
-                        expenseEntries.removeAll { it.id == entry.id }
+                      },
+                      onUpdate = { entry ->
+                        val index = incomeEntries.indexOfFirst { it.id == entry.id }
+                        if (index >= 0) incomeEntries[index] = entry
                         if (activeUserId.isNotBlank()) {
-                          scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
+                          scope.launch(Dispatchers.IO) { updateMoneyEntry(entry) }
                         }
-                      }
-                    },
-                    strings = strings,
-                  )
-                  Page.Dreams -> DreamsPage(
-                    entries = dreamEntries,
-                    onSave = { entry ->
-                      dreamEntries.add(entry)
-                      if (activeUserId.isNotBlank()) {
-                        scope.launch(Dispatchers.IO) { insertDreamEntry(activeUserId, entry) }
-                      }
-                    },
-                    onUpdate = { entry ->
-                      val index = dreamEntries.indexOfFirst { it.id == entry.id }
-                      if (index >= 0) dreamEntries[index] = entry
-                      if (activeUserId.isNotBlank()) {
-                        scope.launch(Dispatchers.IO) { updateDreamEntry(entry) }
-                      }
-                    },
-                    onDelete = { entry ->
-                      requestConfirm(strings["confirm_delete_dream"]) {
-                        dreamEntries.removeAll { it.id == entry.id }
+                      },
+                      onDelete = { entry ->
+                        requestConfirm(strings["confirm_delete_income"]) {
+                          incomeEntries.removeAll { it.id == entry.id }
+                          if (activeUserId.isNotBlank()) {
+                            scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
+                          }
+                        }
+                      },
+                      strings = strings,
+                    )
+                    Page.Expense -> ExpensePage(
+                      entries = expenseEntries,
+                      onSave = { entry ->
+                        expenseEntries.add(entry)
                         if (activeUserId.isNotBlank()) {
-                          scope.launch(Dispatchers.IO) { deleteDreamEntry(entry.id) }
+                          scope.launch(Dispatchers.IO) { insertMoneyEntry(activeUserId, entry) }
                         }
-                      }
-                    },
-                    strings = strings,
-                  )
-                  Page.History -> HistoryPage(entries = incomeEntries + expenseEntries, strings = strings)
-                  Page.Saving -> SavingPage(
-                    entries = savingEntries,
-                    onSave = { entry ->
-                      savingEntries.add(entry)
-                      if (activeUserId.isNotBlank()) {
-                        scope.launch(Dispatchers.IO) { insertSavingEntry(activeUserId, entry) }
-                      }
-                    },
-                    onUpdate = { entry ->
-                      val index = savingEntries.indexOfFirst { it.id == entry.id }
-                      if (index >= 0) savingEntries[index] = entry
-                      if (activeUserId.isNotBlank()) {
-                        scope.launch(Dispatchers.IO) { updateSavingEntry(entry) }
-                      }
-                    },
-                    onDelete = { entry ->
-                      requestConfirm(strings["confirm_delete_saving"]) {
-                        savingEntries.removeAll { it.id == entry.id }
+                      },
+                      onUpdate = { entry ->
+                        val index = expenseEntries.indexOfFirst { it.id == entry.id }
+                        if (index >= 0) expenseEntries[index] = entry
                         if (activeUserId.isNotBlank()) {
-                          scope.launch(Dispatchers.IO) { deleteSavingEntry(entry.id) }
+                          scope.launch(Dispatchers.IO) { updateMoneyEntry(entry) }
                         }
-                      }
-                    },
-                    strings = strings,
-                  )
-                  Page.Calculator -> CalculatorPage()
-                  Page.Report -> ReportPage(
-                    incomeEntries,
-                    expenseEntries,
-                    strings = strings,
-                    language = currentLang,
-                  ) {
-                    toastMessage = it
-                    toastVisible = true
-                  }
-                  Page.Profile -> ProfilePage(
-                    user = currentUser,
-                    strings = strings,
-                    onSave = { updated ->
-                      currentUser = updated
-                      if (updated.id.isNotBlank()) {
-                        scope.launch(Dispatchers.IO) { updateUserProfile(updated) }
-                      }
-                      toastMessage = strings["save_profile"]
+                      },
+                      onDelete = { entry ->
+                        requestConfirm(strings["confirm_delete_expense"]) {
+                          expenseEntries.removeAll { it.id == entry.id }
+                          if (activeUserId.isNotBlank()) {
+                            scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
+                          }
+                        }
+                      },
+                      strings = strings,
+                    )
+                    Page.Dreams -> DreamsPage(
+                      entries = dreamEntries,
+                      onSave = { entry ->
+                        dreamEntries.add(entry)
+                        if (activeUserId.isNotBlank()) {
+                          scope.launch(Dispatchers.IO) { insertDreamEntry(activeUserId, entry) }
+                        }
+                      },
+                      onUpdate = { entry ->
+                        val index = dreamEntries.indexOfFirst { it.id == entry.id }
+                        if (index >= 0) dreamEntries[index] = entry
+                        if (activeUserId.isNotBlank()) {
+                          scope.launch(Dispatchers.IO) { updateDreamEntry(entry) }
+                        }
+                      },
+                      onDelete = { entry ->
+                        requestConfirm(strings["confirm_delete_dream"]) {
+                          dreamEntries.removeAll { it.id == entry.id }
+                          if (activeUserId.isNotBlank()) {
+                            scope.launch(Dispatchers.IO) { deleteDreamEntry(entry.id) }
+                          }
+                        }
+                      },
+                      strings = strings,
+                    )
+                    Page.History -> HistoryPage(entries = incomeEntries + expenseEntries, strings = strings)
+                    Page.Saving -> SavingPage(
+                      entries = savingEntries,
+                      onSave = { entry ->
+                        savingEntries.add(entry)
+                        if (activeUserId.isNotBlank()) {
+                          scope.launch(Dispatchers.IO) { insertSavingEntry(activeUserId, entry) }
+                        }
+                      },
+                      onUpdate = { entry ->
+                        val index = savingEntries.indexOfFirst { it.id == entry.id }
+                        if (index >= 0) savingEntries[index] = entry
+                        if (activeUserId.isNotBlank()) {
+                          scope.launch(Dispatchers.IO) { updateSavingEntry(entry) }
+                        }
+                      },
+                      onDelete = { entry ->
+                        requestConfirm(strings["confirm_delete_saving"]) {
+                          savingEntries.removeAll { it.id == entry.id }
+                          if (activeUserId.isNotBlank()) {
+                            scope.launch(Dispatchers.IO) { deleteSavingEntry(entry.id) }
+                          }
+                        }
+                      },
+                      strings = strings,
+                    )
+                    Page.Calculator -> CalculatorPage()
+                    Page.Report -> ReportPage(
+                      incomeEntries,
+                      expenseEntries,
+                      strings = strings,
+                      language = currentLang,
+                    ) {
+                      toastMessage = it
                       toastVisible = true
-                    },
-                    onLogout = {
-                      isLoggedIn = false
-                      currentUser = null
-                      showSplash = false
-                      showAuth = false
-                      loadingTarget = LoadingTarget.Logout
-                      showLoading = true
-                      clearAuthFields(
-                        onSignInUsername = { signInUsername = it },
-                        onSignInPassword = { signInPassword = it },
-                        onSignUpName = { signUpName = it },
-                        onSignUpEmail = { signUpEmail = it },
-                        onSignUpPhone = { signUpPhone = it },
-                        onSignUpCountry = { signUpCountry = it },
-                        onSignUpBirthdate = { signUpBirthdate = it },
-                        onSignUpBio = { signUpBio = it },
-                        onSignUpUsername = { signUpUsername = it },
-                        onSignUpPassword = { signUpPassword = it },
-                      )
-                      toastMessage = strings["logout_success"]
-                      toastVisible = true
-                    },
-                  )
-                  Page.Settings -> SettingsPage(
-                    fingerprintEnabled = fingerprintEnabled,
-                    onFingerprintToggle = { enabled ->
-                      if (enabled) {
-                        if (canUseFingerprint()) {
-                          fingerprintEnabled = true
-                          prefs.edit().putBoolean("fingerprint_enabled", true).apply()
-                          alertMessage = strings["fingerprint_enabled"]
-                          showAlert = true
+                    }
+                    Page.Profile -> ProfilePage(
+                      user = currentUser,
+                      strings = strings,
+                      onSave = { updated ->
+                        currentUser = updated
+                        if (updated.id.isNotBlank()) {
+                          scope.launch(Dispatchers.IO) { updateUserProfile(updated) }
+                        }
+                        toastMessage = strings["save_profile"]
+                        toastVisible = true
+                      },
+                      onLogout = {
+                        isLoggedIn = false
+                        currentUser = null
+                        showSplash = false
+                        showAuth = false
+                        loadingTarget = LoadingTarget.Logout
+                        showLoading = true
+                        clearAuthFields(
+                          onSignInUsername = { signInUsername = it },
+                          onSignInPassword = { signInPassword = it },
+                          onSignUpName = { signUpName = it },
+                          onSignUpEmail = { signUpEmail = it },
+                          onSignUpPhone = { signUpPhone = it },
+                          onSignUpCountry = { signUpCountry = it },
+                          onSignUpBirthdate = { signUpBirthdate = it },
+                          onSignUpBio = { signUpBio = it },
+                          onSignUpUsername = { signUpUsername = it },
+                          onSignUpPassword = { signUpPassword = it },
+                        )
+                        toastMessage = strings["logout_success"]
+                        toastVisible = true
+                      },
+                    )
+                    Page.Settings -> SettingsPage(
+                      fingerprintEnabled = fingerprintEnabled,
+                      onFingerprintToggle = { enabled ->
+                        if (enabled) {
+                          if (canUseFingerprint()) {
+                            fingerprintEnabled = true
+                            prefs.edit().putBoolean("fingerprint_enabled", true).apply()
+                            alertMessage = strings["fingerprint_enabled"]
+                            showAlert = true
+                          } else {
+                            fingerprintEnabled = false
+                            prefs.edit().putBoolean("fingerprint_enabled", false).apply()
+                            alertMessage = strings["fingerprint_required"]
+                            showAlert = true
+                          }
                         } else {
                           fingerprintEnabled = false
                           prefs.edit().putBoolean("fingerprint_enabled", false).apply()
-                          alertMessage = strings["fingerprint_required"]
-                          showAlert = true
                         }
-                      } else {
-                        fingerprintEnabled = false
-                        prefs.edit().putBoolean("fingerprint_enabled", false).apply()
+                      },
+                      language = currentLang,
+                      onLanguageChange = {
+                        currentLang = it
+                        prefs.edit().putString("app_language", if (it == AppLanguage.ID) "ID" else "EN").apply()
+                      },
+                      strings = strings,
+                      onToast = {
+                        toastMessage = it
+                        toastVisible = true
+                      },
+                    )
+                    Page.Themes -> ThemesPage(currentTheme) { selected ->
+                      requestConfirm("${strings["confirm_theme_change"]} ${themeLabel(selected, strings)}?") {
+                        currentTheme = selected
                       }
-                    },
-                    language = currentLang,
-                    onLanguageChange = {
-                      currentLang = it
-                      prefs.edit().putString("app_language", if (it == AppLanguage.ID) "ID" else "EN").apply()
-                    },
-                    strings = strings,
-                    onToast = {
-                      toastMessage = it
-                      toastVisible = true
-                    },
-                  )
-                  Page.Themes -> ThemesPage(currentTheme) { selected ->
-                    requestConfirm("${strings["confirm_theme_change"]} ${themeLabel(selected, strings)}?") {
-                      currentTheme = selected
                     }
                   }
                 }

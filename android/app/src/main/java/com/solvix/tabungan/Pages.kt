@@ -781,7 +781,12 @@ fun ProfilePage(
           selected = country,
           onSelected = { country = it },
         )
-        AppTextField(strings["label_birthdate"], value = birthdate, onValueChange = { birthdate = it }, placeholder = strings["placeholder_date"])
+        DateField(
+          label = strings["label_birthdate"],
+          value = birthdate,
+          onValueChange = { birthdate = it },
+          placeholder = strings["placeholder_date"],
+        )
         AppTextField(strings["label_bio"], value = bio, onValueChange = { bio = it }, minLines = 2)
         AppTextField(strings["label_username"], value = username, onValueChange = { username = it })
         AppTextField(strings["password_new"], value = password, onValueChange = { password = it }, isPassword = true)
