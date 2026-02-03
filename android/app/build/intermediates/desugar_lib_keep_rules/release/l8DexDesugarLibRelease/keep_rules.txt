@@ -29,6 +29,7 @@
   public static j$.time.Instant now();
   public static j$.time.Instant ofEpochMilli(long);
   public static j$.time.Instant ofEpochSecond(long, long);
+  public static j$.time.Instant parse(java.lang.CharSequence);
   public j$.time.Instant plusNanos(long);
   public j$.time.Instant plusSeconds(long);
   public long toEpochMilli();
@@ -147,6 +148,7 @@
   j$.time.ZoneOffset UTC;
 }
 -keep class j$.time.ZonedDateTime {
+  public int getYear();
   public j$.time.ZonedDateTime plusDays(long);
   public j$.time.ZonedDateTime plusMonths(long);
   public j$.time.ZonedDateTime plusNanos(long);
@@ -167,6 +169,7 @@
   public static j$.time.chrono.Chronology ofLocale(java.util.Locale);
 }
 -keep class j$.time.format.DateTimeFormatter {
+  public java.lang.String format(j$.time.temporal.TemporalAccessor);
   public static j$.time.format.DateTimeFormatter ofPattern(java.lang.String);
   public static j$.time.format.DateTimeFormatter ofPattern(java.lang.String, java.util.Locale);
   public j$.time.format.DateTimeFormatter withDecimalStyle(j$.time.format.DecimalStyle);
@@ -195,6 +198,8 @@
   j$.time.temporal.ChronoUnit YEARS;
 }
 -keep interface j$.time.temporal.Temporal {
+}
+-keep interface j$.time.temporal.TemporalAccessor {
 }
 -keep interface j$.time.temporal.TemporalUnit {
 }

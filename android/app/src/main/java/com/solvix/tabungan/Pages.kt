@@ -40,11 +40,22 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.pdf.PdfDocument
+import java.io.OutputStreamWriter
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -99,7 +110,7 @@ fun HeroSummary(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateField(
+fun DateField(
   label: String,
   value: String,
   onValueChange: (String) -> Unit,
@@ -486,7 +497,7 @@ fun CalculatorPage() {
           "7", "8", "9", "÷",
           "4", "5", "6", "×",
           "1", "2", "3", "−",
-          "0", ".", "C", "+",
+          "0", "⌫", "C", "+",
         )
         val rows: List<List<String>> = listOf(
           keys.subList(0, 4),
@@ -521,7 +532,7 @@ fun CalculatorPage() {
 private fun RowScope.CalculatorKey(label: String, onPress: () -> Unit, isWide: Boolean = false, isPrimary: Boolean = false) {
   val colors = LocalAppColors.current
   val backgroundColor = when {
-    label == "C" -> colors.danger.copy(alpha = 0.2f)
+    label == "C" || label == "⌫" -> colors.danger.copy(alpha = 0.2f)
     label == "÷" || label == "×" || label == "−" || label == "+" -> colors.accent.copy(alpha = 0.2f)
     else -> colors.bg2
   }
@@ -532,7 +543,7 @@ private fun RowScope.CalculatorKey(label: String, onPress: () -> Unit, isWide: B
   }
   val textColor = when {
     isPrimary -> Color.White
-    label == "C" -> Color(0xFFB92643)
+    label == "C" || label == "⌫" -> Color(0xFFB92643)
     label == "÷" || label == "×" || label == "−" || label == "+" -> Color(0xFFA55B00)
     else -> colors.text
   }
@@ -558,17 +569,53 @@ fun ReportPage(
   expense: List<MoneyEntry>,
   strings: AppStrings,
   language: AppLanguage,
+  startYear: Int,
   onToast: (String) -> Unit,
 ) {
   val colors = LocalAppColors.current
   val theme = LocalThemeName.current
+  val context = LocalContext.current
   val incomeTotal = income.sumOf { it.amount }
   val expenseTotal = expense.sumOf { it.amount }
   var modeIndex by rememberSaveable { mutableStateOf(0) }
   val monthly = buildMonthlySeries(income, expense, language)
-  val yearly = buildYearlySeries(income, expense)
+  val yearly = buildYearlySeries(income, expense, startYear)
   val series = if (modeIndex == 0) monthly else yearly
   val totals = if (modeIndex == 0) totalsFromSeries(monthly) else totalsFromSeries(yearly)
+  val modeLabel = if (modeIndex == 0) strings["report_monthly"] else strings["report_yearly"]
+  val dateTag = remember { SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date()) }
+  val pdfLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+    if (uri == null) return@rememberLauncherForActivityResult
+    try {
+      writeReportPdf(
+        context = context,
+        uri = uri,
+        title = "${strings["section_report_title"]} - $modeLabel",
+        series = series,
+        totals = totals,
+      )
+      openExportedFile(context, uri, "application/pdf")
+      onToast(strings["export_success_pdf"])
+    } catch (ex: Exception) {
+      onToast(strings["export_failed"])
+    }
+  }
+  val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+    if (uri == null) return@rememberLauncherForActivityResult
+    try {
+      writeReportCsv(
+        context = context,
+        uri = uri,
+        title = "${strings["section_report_title"]} - $modeLabel",
+        series = series,
+        totals = totals,
+      )
+      openExportedFile(context, uri, "text/csv")
+      onToast(strings["export_success_csv"])
+    } catch (ex: Exception) {
+      onToast(strings["export_failed"])
+    }
+  }
   val chartBackground = if (isDarkTheme(theme)) {
     Brush.linearGradient(listOf(Color(0xFF2A2F4D), Color(0xFF3A4270)))
   } else {
@@ -599,7 +646,7 @@ fun ReportPage(
           ) {
             Text(
               text = strings["report_monthly"],
-              color = if (modeIndex == 0) Color.White else colors.text,
+              color = Color.White,
               fontWeight = FontWeight.Bold,
               modifier = Modifier.clickable { modeIndex = 0 },
             )
@@ -614,7 +661,7 @@ fun ReportPage(
           ) {
             Text(
               text = strings["report_yearly"],
-              color = if (modeIndex == 1) Color.White else colors.text,
+              color = Color.White,
               fontWeight = FontWeight.Bold,
               modifier = Modifier.clickable { modeIndex = 1 },
             )
@@ -632,8 +679,14 @@ fun ReportPage(
     }
     Spacer(modifier = Modifier.height(12.dp))
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-      GradientButton(text = strings["export_pdf"], onClick = { onToast(strings["export_pdf"]) })
-      GradientButton(text = strings["export_csv"], onClick = { onToast(strings["export_csv"]) })
+      GradientButton(
+        text = strings["export_pdf"],
+        onClick = { pdfLauncher.launch("CashFlow_${modeLabel.lowercase()}_$dateTag.pdf") },
+      )
+      GradientButton(
+        text = strings["export_csv"],
+        onClick = { csvLauncher.launch("CashFlow_${modeLabel.lowercase()}_$dateTag.csv") },
+      )
     }
   }
 }
@@ -651,6 +704,105 @@ private fun ReportLine(label: String, value: String, positive: Boolean) {
       color = if (positive) colors.accent2 else colors.danger,
       fontSize = 13.sp,
     )
+  }
+}
+
+private fun openExportedFile(context: Context, uri: Uri, mimeType: String) {
+  val intent = Intent(Intent.ACTION_VIEW).apply {
+    setDataAndType(uri, mimeType)
+    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+  }
+  try {
+    context.startActivity(intent)
+  } catch (_: Exception) {
+    // Viewer not available; export still succeeded.
+  }
+}
+
+private fun writeReportPdf(
+  context: Context,
+  uri: Uri,
+  title: String,
+  series: ChartSeries,
+  totals: Pair<Int, Int>,
+) {
+  val document = PdfDocument()
+  val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
+  val page = document.startPage(pageInfo)
+  val canvas = page.canvas
+  val paint = Paint().apply {
+    color = Color.Black.toArgb()
+    textSize = 18f
+    typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+  }
+  var y = 40f
+  canvas.drawText(title, 40f, y, paint)
+  y += 22f
+  paint.textSize = 11f
+  paint.typeface = Typeface.DEFAULT
+  val generated = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.US).format(Date())
+  canvas.drawText("Generated: $generated", 40f, y, paint)
+  y += 22f
+
+  paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+  canvas.drawText("Label", 40f, y, paint)
+  canvas.drawText("Income", 240f, y, paint)
+  canvas.drawText("Expense", 360f, y, paint)
+  canvas.drawText("Balance", 480f, y, paint)
+  y += 16f
+  paint.typeface = Typeface.DEFAULT
+
+  for (i in series.labels.indices) {
+    val label = series.labels[i]
+    val income = series.income.getOrNull(i) ?: 0
+    val expense = series.expense.getOrNull(i) ?: 0
+    val balance = income - expense
+    canvas.drawText(label, 40f, y, paint)
+    canvas.drawText(formatRupiah(income), 240f, y, paint)
+    canvas.drawText(formatRupiah(expense), 360f, y, paint)
+    canvas.drawText(formatRupiah(balance), 480f, y, paint)
+    y += 16f
+  }
+
+  y += 12f
+  paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+  canvas.drawText("Total Income: ${formatRupiah(totals.first)}", 40f, y, paint)
+  y += 16f
+  canvas.drawText("Total Expense: ${formatRupiah(totals.second)}", 40f, y, paint)
+  y += 16f
+  canvas.drawText("Total Balance: ${formatRupiah(totals.first - totals.second)}", 40f, y, paint)
+
+  document.finishPage(page)
+  context.contentResolver.openOutputStream(uri)?.use { output ->
+    document.writeTo(output)
+  }
+  document.close()
+}
+
+private fun writeReportCsv(
+  context: Context,
+  uri: Uri,
+  title: String,
+  series: ChartSeries,
+  totals: Pair<Int, Int>,
+) {
+  context.contentResolver.openOutputStream(uri)?.use { output ->
+    OutputStreamWriter(output).use { writer ->
+      writer.appendLine(title)
+      writer.appendLine("Label,Income,Expense,Balance")
+      for (i in series.labels.indices) {
+        val label = series.labels[i]
+        val income = series.income.getOrNull(i) ?: 0
+        val expense = series.expense.getOrNull(i) ?: 0
+        val balance = income - expense
+        writer.appendLine("$label,${formatRupiah(income)},${formatRupiah(expense)},${formatRupiah(balance)}")
+      }
+      writer.appendLine()
+      writer.appendLine("Total Income,${formatRupiah(totals.first)}")
+      writer.appendLine("Total Expense,${formatRupiah(totals.second)}")
+      writer.appendLine("Total Balance,${formatRupiah(totals.first - totals.second)}")
+      writer.flush()
+    }
   }
 }
 
@@ -739,7 +891,6 @@ fun ProfilePage(
   val language = LocalLanguage.current
   var name by rememberSaveable { mutableStateOf(user?.name.orEmpty()) }
   var email by rememberSaveable { mutableStateOf(user?.email.orEmpty()) }
-  var phone by rememberSaveable { mutableStateOf(user?.phone.orEmpty()) }
   var country by rememberSaveable { mutableStateOf(user?.country.orEmpty()) }
   var birthdate by rememberSaveable { mutableStateOf(user?.birthdate.orEmpty()) }
   var bio by rememberSaveable { mutableStateOf(user?.bio.orEmpty()) }
@@ -749,7 +900,6 @@ fun ProfilePage(
   LaunchedEffect(user) {
     name = user?.name.orEmpty()
     email = user?.email.orEmpty()
-    phone = user?.phone.orEmpty()
     country = user?.country.orEmpty()
     birthdate = user?.birthdate.orEmpty()
     bio = user?.bio.orEmpty()
@@ -763,7 +913,6 @@ fun ProfilePage(
       Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ProfileLine(label = strings["label_name"], value = name.ifBlank { strings["guest"] })
         ProfileLine(label = strings["label_email"], value = email.ifBlank { "-" })
-        ProfileLine(label = strings["label_phone"], value = phone.ifBlank { "-" })
         ProfileLine(label = strings["label_country"], value = country.ifBlank { "-" })
         ProfileLine(label = strings["label_birthdate"], value = birthdate.ifBlank { "-" })
         ProfileLine(label = strings["label_bio"], value = bio.ifBlank { "-" })
@@ -777,7 +926,6 @@ fun ProfilePage(
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppTextField(strings["label_name"], value = name, onValueChange = { name = it })
         AppTextField(strings["label_email"], value = email, onValueChange = { email = it }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
-        AppTextField(strings["label_phone"], value = phone, onValueChange = { phone = it }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone))
         AppDropdown(
           label = strings["label_country"],
           placeholder = strings["placeholder_country"],
@@ -800,12 +948,12 @@ fun ProfilePage(
                 id = user?.id.orEmpty(),
                 name = name,
                 email = email,
-                phone = phone,
                 country = country,
                 birthdate = birthdate,
-              bio = bio,
-              username = username,
-              password = password,
+                bio = bio,
+                createdAt = user?.createdAt.orEmpty(),
+                username = username,
+                password = password,
             ),
           )
         }
@@ -829,6 +977,8 @@ private fun ProfileLine(label: String, value: String) {
 fun SettingsPage(
   fingerprintEnabled: Boolean,
   onFingerprintToggle: (Boolean) -> Unit,
+  faceUnlockEnabled: Boolean,
+  onFaceUnlockToggle: (Boolean) -> Unit,
   language: AppLanguage,
   onLanguageChange: (AppLanguage) -> Unit,
   strings: AppStrings,
@@ -864,6 +1014,25 @@ fun SettingsPage(
         Switch(
           checked = fingerprintEnabled,
           onCheckedChange = onFingerprintToggle,
+        )
+      }
+      Spacer(modifier = Modifier.height(10.dp))
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Column(modifier = Modifier.weight(1f)) {
+          Text(text = strings["settings_face"], fontSize = 12.sp, color = colors.text)
+          Text(
+            text = strings["settings_face_desc"],
+            color = colors.muted,
+            fontSize = 11.sp,
+          )
+        }
+        Switch(
+          checked = faceUnlockEnabled,
+          onCheckedChange = onFaceUnlockToggle,
         )
       }
     }
@@ -1033,40 +1202,45 @@ private data class ChartSeries(
 
 private fun buildMonthlySeries(income: List<MoneyEntry>, expense: List<MoneyEntry>, language: AppLanguage): ChartSeries {
   val now = Calendar.getInstance()
+  val currentYear = now.get(Calendar.YEAR)
   val labels = mutableListOf<String>()
   val incomeTotals = mutableListOf<Int>()
   val expenseTotals = mutableListOf<Int>()
   val locale = if (language == AppLanguage.ID) Locale("id", "ID") else Locale.US
   val fmt = SimpleDateFormat("MMM", locale)
-  for (i in 5 downTo 0) {
+  for (month in 0..11) {
     val cal = Calendar.getInstance().apply {
-      timeInMillis = now.timeInMillis
-      add(Calendar.MONTH, -i)
+      set(Calendar.YEAR, currentYear)
+      set(Calendar.MONTH, month)
+      set(Calendar.DAY_OF_MONTH, 1)
     }
-    val year = cal.get(Calendar.YEAR)
-    val month = cal.get(Calendar.MONTH)
     labels.add(fmt.format(cal.time))
     incomeTotals.add(income.sumOf { entry ->
       val date = parseDate(entry.date) ?: return@sumOf 0
       val dCal = Calendar.getInstance().apply { timeInMillis = date }
-      if (dCal.get(Calendar.YEAR) == year && dCal.get(Calendar.MONTH) == month) entry.amount else 0
+      if (dCal.get(Calendar.YEAR) == currentYear && dCal.get(Calendar.MONTH) == month) entry.amount else 0
     })
     expenseTotals.add(expense.sumOf { entry ->
       val date = parseDate(entry.date) ?: return@sumOf 0
       val dCal = Calendar.getInstance().apply { timeInMillis = date }
-      if (dCal.get(Calendar.YEAR) == year && dCal.get(Calendar.MONTH) == month) entry.amount else 0
+      if (dCal.get(Calendar.YEAR) == currentYear && dCal.get(Calendar.MONTH) == month) entry.amount else 0
     })
   }
   return ChartSeries(labels, incomeTotals, expenseTotals)
 }
 
-private fun buildYearlySeries(income: List<MoneyEntry>, expense: List<MoneyEntry>): ChartSeries {
+private fun buildYearlySeries(income: List<MoneyEntry>, expense: List<MoneyEntry>, startYear: Int): ChartSeries {
   val now = Calendar.getInstance()
   val currentYear = now.get(Calendar.YEAR)
+  val baseEnd = startYear + 4
+  val shift = (currentYear - baseEnd).coerceAtLeast(0)
+  val windowStart = startYear + shift
+  val windowEnd = windowStart + 4
+
   val labels = mutableListOf<String>()
   val incomeTotals = mutableListOf<Int>()
   val expenseTotals = mutableListOf<Int>()
-  for (year in currentYear - 4..currentYear) {
+  for (year in windowStart..windowEnd) {
     labels.add(year.toString())
     incomeTotals.add(income.sumOf { entry ->
       val date = parseDate(entry.date) ?: return@sumOf 0
@@ -1089,9 +1263,11 @@ private fun totalsFromSeries(series: ChartSeries): Pair<Int, Int> {
 @Composable
 private fun LineChart(series: ChartSeries) {
   val colors = LocalAppColors.current
-  val values = series.income.zip(series.expense) { inc, exp -> (inc - exp).toFloat() }
-  val maxVal = (values.maxOrNull() ?: 1f).coerceAtLeast(1f)
-  val minVal = (values.minOrNull() ?: 0f).coerceAtMost(0f)
+  val incomeValues = series.income.map { it.toFloat() }
+  val expenseValues = series.expense.map { it.toFloat() }
+  val allValues = incomeValues + expenseValues
+  val maxVal = (allValues.maxOrNull() ?: 1f).coerceAtLeast(1f)
+  val minVal = (allValues.minOrNull() ?: 0f).coerceAtMost(0f)
   val range = (maxVal - minVal).coerceAtLeast(1f)
 
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1105,26 +1281,45 @@ private fun LineChart(series: ChartSeries) {
     ) {
       val width = size.width
       val height = size.height
-      if (values.isEmpty()) return@Canvas
-      val stepX = if (values.size == 1) width else width / (values.size - 1)
-      val points = values.mapIndexed { index, value ->
-        val x = index * stepX
-        val y = height - ((value - minVal) / range) * height
-        Offset(x, y)
+      if (incomeValues.isEmpty()) return@Canvas
+      val stepX = if (incomeValues.size == 1) width else width / (incomeValues.size - 1)
+      fun buildPoints(values: List<Float>): List<Offset> {
+        return values.mapIndexed { index, value ->
+          val x = index * stepX
+          val y = height - ((value - minVal) / range) * height
+          Offset(x, y)
+        }
       }
-      for (i in 0 until points.size - 1) {
+      val incomePoints = buildPoints(incomeValues)
+      val expensePoints = buildPoints(expenseValues)
+      for (i in 0 until incomePoints.size - 1) {
         drawLine(
           color = colors.accent2,
-          start = points[i],
-          end = points[i + 1],
+          start = incomePoints[i],
+          end = incomePoints[i + 1],
+          strokeWidth = 6f,
+          cap = StrokeCap.Round,
+        )
+      }
+      for (i in 0 until expensePoints.size - 1) {
+        drawLine(
+          color = colors.danger,
+          start = expensePoints[i],
+          end = expensePoints[i + 1],
           strokeWidth = 6f,
           cap = StrokeCap.Round,
         )
       }
       drawPoints(
-        points = points,
+        points = incomePoints,
         pointMode = androidx.compose.ui.graphics.PointMode.Points,
         color = colors.accent,
+        strokeWidth = 12f,
+      )
+      drawPoints(
+        points = expensePoints,
+        pointMode = androidx.compose.ui.graphics.PointMode.Points,
+        color = colors.danger,
         strokeWidth = 12f,
       )
     }
@@ -1203,6 +1398,10 @@ private fun UUIDString(): String = java.util.UUID.randomUUID().toString()
 
 private fun calculate(current: String, key: String): String {
   if (key == "C") return "0"
+  if (key == "⌫") {
+    val trimmed = current.dropLast(1)
+    return if (trimmed.isBlank()) "0" else trimmed
+  }
   if (key == "=") return current
   if (current == "0" && key.all { it.isDigit() }) return key
   return current + key

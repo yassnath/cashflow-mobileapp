@@ -2,7 +2,6 @@ package com.solvix.tabungan
 
 import android.os.Bundle
 import android.content.Context
-import android.app.DatePickerDialog
 import android.app.KeyguardManager
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
@@ -86,6 +85,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlin.math.roundToInt
 import kotlinx.serialization.json.put
 import java.time.Instant
+import java.time.ZoneId
 
 class MainActivity : FragmentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -176,6 +176,8 @@ fun TabunganApp() {
     }
   var hasSeenWelcome by remember { mutableStateOf(prefs.getBoolean("has_seen_welcome", false)) }
   var fingerprintEnabled by rememberSaveable { mutableStateOf(prefs.getBoolean("fingerprint_enabled", false)) }
+  var faceUnlockEnabled by rememberSaveable { mutableStateOf(prefs.getBoolean("face_unlock_enabled", false)) }
+  var biometricAllowed by rememberSaveable { mutableStateOf(prefs.getBoolean("biometric_allowed", false)) }
   var hasRegistered by rememberSaveable { mutableStateOf(prefs.getBoolean("has_registered", false)) }
   var savedUsername by rememberSaveable { mutableStateOf(prefs.getString("saved_username", "") ?: "") }
   var savedPassword by rememberSaveable { mutableStateOf(prefs.getString("saved_password", "") ?: "") }
@@ -195,7 +197,6 @@ fun TabunganApp() {
   var signInPassword by rememberSaveable { mutableStateOf("") }
   var signUpName by rememberSaveable { mutableStateOf("") }
   var signUpEmail by rememberSaveable { mutableStateOf("") }
-  var signUpPhone by rememberSaveable { mutableStateOf("") }
   var signUpCountry by rememberSaveable { mutableStateOf("") }
   var signUpBirthdate by rememberSaveable { mutableStateOf("") }
   var signUpBio by rememberSaveable { mutableStateOf("") }
@@ -203,6 +204,13 @@ fun TabunganApp() {
   var signUpPassword by rememberSaveable { mutableStateOf("") }
 
   val strings = stringsFor(currentLang)
+  fun resolveStartYear(): Int {
+    val fallback = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+    val createdAt = currentUser?.createdAt.orEmpty()
+    if (createdAt.isBlank()) return fallback
+    val millis = parseCreatedAtMillis(createdAt) ?: return fallback
+    return Instant.ofEpochMilli(millis).atZone(ZoneId.of("Asia/Jakarta")).year
+  }
 
   suspend fun fetchUserByCredentials(username: String, password: String): UserProfile? {
     val response = SupabaseClient.client
@@ -220,10 +228,10 @@ fun TabunganApp() {
       id = user.id,
       name = user.name,
       email = user.email,
-      phone = user.phone,
       country = user.country,
       birthdate = toUiDate(user.birthdate ?: ""),
       bio = user.bio.orEmpty(),
+      createdAt = user.createdAt,
       username = user.username,
       password = user.password,
     )
@@ -258,11 +266,12 @@ fun TabunganApp() {
         buildJsonObject {
           put("name", user.name)
           put("email", user.email)
-          put("phone", user.phone)
           put("country", user.country)
           put("bio", user.bio ?: "")
-          put("birthdate", toDbDate(user.birthdate ?: ""))
-          put("created_at", user.createdAt)
+          put("birthdate", toUiDate(user.birthdate ?: ""))
+          if (user.createdAt.isNotBlank()) {
+            put("created_at", user.createdAt)
+          }
           put("username", user.username)
           put("password", user.password)
         },
@@ -276,10 +285,9 @@ fun TabunganApp() {
         buildJsonObject {
           put("name", user.name)
           put("email", user.email)
-          put("phone", user.phone)
           put("country", user.country)
           put("bio", user.bio)
-          put("birthdate", toDbDate(user.birthdate))
+          put("birthdate", toUiDate(user.birthdate))
           put("username", user.username)
           put("password", user.password)
         },
@@ -304,7 +312,7 @@ fun TabunganApp() {
       .from("users")
       .select()
       .decodeList<SupabaseUser>()
-    return users.sortedByDescending { it.createdAt }
+    return users.sortedByDescending { parseCreatedAtMillis(it.createdAt) ?: 0L }
   }
 
   suspend fun loadUserData(userId: String) {
@@ -417,6 +425,8 @@ fun TabunganApp() {
             currentUser = matchedUser
             isLoggedIn = true
             showAuth = false
+            biometricAllowed = true
+            prefs.edit().putBoolean("biometric_allowed", true).apply()
             persistCredentials(matchedUser.username, matchedUser.password)
             toastMessage = strings["login_success"]
             toastVisible = true
@@ -568,15 +578,28 @@ fun TabunganApp() {
     return biometricOk && keyguardManager.isDeviceSecure
   }
 
-  fun launchFingerprintAuth(onSuccess: () -> Unit) {
+  fun canUseBiometric(): Boolean {
+    val strong = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+    val weak = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+    val biometricOk = strong == BiometricManager.BIOMETRIC_SUCCESS || weak == BiometricManager.BIOMETRIC_SUCCESS
+    return biometricOk && keyguardManager.isDeviceSecure
+  }
+
+  fun launchBiometricAuth(
+    title: String,
+    subtitle: String,
+    requireFingerprint: Boolean,
+    onSuccess: () -> Unit,
+  ) {
     val activity = context as? FragmentActivity
     if (activity == null) {
       alertMessage = strings["fingerprint_activity_required"]
       showAlert = true
       return
     }
-    if (!canUseFingerprint()) {
-      alertMessage = strings["fingerprint_required"]
+    val usable = if (requireFingerprint) canUseFingerprint() else canUseBiometric()
+    if (!usable) {
+      alertMessage = if (requireFingerprint) strings["fingerprint_required"] else strings["face_required"]
       showAlert = true
       return
     }
@@ -595,11 +618,30 @@ fun TabunganApp() {
       },
     )
     val promptInfo = BiometricPrompt.PromptInfo.Builder()
-      .setTitle(strings["fingerprint_prompt_title"])
-      .setSubtitle(strings["fingerprint_prompt_subtitle"])
+      .setTitle(title)
+      .setSubtitle(subtitle)
       .setNegativeButtonText(strings["confirm_cancel"])
+      .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
       .build()
     prompt.authenticate(promptInfo)
+  }
+
+  fun launchFingerprintAuth(onSuccess: () -> Unit) {
+    launchBiometricAuth(
+      title = strings["fingerprint_prompt_title"],
+      subtitle = strings["fingerprint_prompt_subtitle"],
+      requireFingerprint = true,
+      onSuccess = onSuccess,
+    )
+  }
+
+  fun launchFaceAuth(onSuccess: () -> Unit) {
+    launchBiometricAuth(
+      title = strings["face_prompt_title"],
+      subtitle = strings["face_prompt_subtitle"],
+      requireFingerprint = false,
+      onSuccess = onSuccess,
+    )
   }
 
   TabunganTheme(theme = currentTheme) {
@@ -628,9 +670,9 @@ fun TabunganApp() {
           fingerprintPrompted = false
         }
       }
-      LaunchedEffect(showAuth, authTab, fingerprintEnabled, hasRegistered) {
+      LaunchedEffect(showAuth, authTab, fingerprintEnabled, hasRegistered, biometricAllowed) {
         if (!showAuth || authTab != AuthTab.SignIn) return@LaunchedEffect
-        if (!fingerprintEnabled || !hasRegistered || fingerprintPrompted) return@LaunchedEffect
+        if (!fingerprintEnabled || !hasRegistered || !biometricAllowed || fingerprintPrompted) return@LaunchedEffect
         if (!canUseFingerprint()) return@LaunchedEffect
         fingerprintPrompted = true
         launchFingerprintAuth {
@@ -728,6 +770,8 @@ fun TabunganApp() {
                       requestConfirm(strings["logout_confirm"]) {
                         isLoggedIn = false
                         currentUser = null
+                        biometricAllowed = false
+                        prefs.edit().putBoolean("biometric_allowed", false).apply()
                         showSplash = false
                         showAuth = false
                         loadingTarget = LoadingTarget.Logout
@@ -737,7 +781,6 @@ fun TabunganApp() {
                           onSignInPassword = { signInPassword = it },
                           onSignUpName = { signUpName = it },
                           onSignUpEmail = { signUpEmail = it },
-                          onSignUpPhone = { signUpPhone = it },
                           onSignUpCountry = { signUpCountry = it },
                           onSignUpBirthdate = { signUpBirthdate = it },
                           onSignUpBio = { signUpBio = it },
@@ -904,6 +947,7 @@ fun TabunganApp() {
                       expenseEntries,
                       strings = strings,
                       language = currentLang,
+                      startYear = resolveStartYear(),
                     ) {
                       toastMessage = it
                       toastVisible = true
@@ -932,6 +976,8 @@ fun TabunganApp() {
                       onLogout = {
                         isLoggedIn = false
                         currentUser = null
+                        biometricAllowed = false
+                        prefs.edit().putBoolean("biometric_allowed", false).apply()
                         showSplash = false
                         showAuth = false
                         loadingTarget = LoadingTarget.Logout
@@ -941,7 +987,6 @@ fun TabunganApp() {
                           onSignInPassword = { signInPassword = it },
                           onSignUpName = { signUpName = it },
                           onSignUpEmail = { signUpEmail = it },
-                          onSignUpPhone = { signUpPhone = it },
                           onSignUpCountry = { signUpCountry = it },
                           onSignUpBirthdate = { signUpBirthdate = it },
                           onSignUpBio = { signUpBio = it },
@@ -970,6 +1015,25 @@ fun TabunganApp() {
                         } else {
                           fingerprintEnabled = false
                           prefs.edit().putBoolean("fingerprint_enabled", false).apply()
+                        }
+                      },
+                      faceUnlockEnabled = faceUnlockEnabled,
+                      onFaceUnlockToggle = { enabled ->
+                        if (enabled) {
+                          if (canUseBiometric()) {
+                            faceUnlockEnabled = true
+                            prefs.edit().putBoolean("face_unlock_enabled", true).apply()
+                            alertMessage = strings["face_enabled"]
+                            showAlert = true
+                          } else {
+                            faceUnlockEnabled = false
+                            prefs.edit().putBoolean("face_unlock_enabled", false).apply()
+                            alertMessage = strings["face_required"]
+                            showAlert = true
+                          }
+                        } else {
+                          faceUnlockEnabled = false
+                          prefs.edit().putBoolean("face_unlock_enabled", false).apply()
                         }
                       },
                       language = currentLang,
@@ -1048,7 +1112,7 @@ fun TabunganApp() {
               GradientButton(text = strings["welcome_action"]) {
                 hasSeenWelcome = true
                 prefs.edit().putBoolean("has_seen_welcome", true).apply()
-                if (fingerprintEnabled && canUseFingerprint()) {
+                if (fingerprintEnabled && biometricAllowed && canUseFingerprint()) {
                   launchFingerprintAuth {
                     showSplash = false
                     isLoggedIn = true
@@ -1098,9 +1162,21 @@ fun TabunganApp() {
                   Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     AppTextField(strings["label_username"], value = signInUsername, onValueChange = { signInUsername = it })
                     AppTextField(strings["password"], value = signInPassword, onValueChange = { signInPassword = it }, isPassword = true)
-                    if (fingerprintEnabled && hasRegistered) {
+                    if (fingerprintEnabled && hasRegistered && biometricAllowed) {
                       GhostButton(text = strings["auth_fingerprint"]) {
                         launchFingerprintAuth {
+                          if (savedUsername.isBlank() || savedPassword.isBlank()) {
+                            alertMessage = strings["signin_missing"]
+                            showAlert = true
+                          } else {
+                            signInWithCredentials(savedUsername, savedPassword)
+                          }
+                        }
+                      }
+                    }
+                    if (faceUnlockEnabled && hasRegistered && biometricAllowed) {
+                      GhostButton(text = strings["auth_face"]) {
+                        launchFaceAuth {
                           if (savedUsername.isBlank() || savedPassword.isBlank()) {
                             alertMessage = strings["signin_missing"]
                             showAlert = true
@@ -1116,10 +1192,8 @@ fun TabunganApp() {
               }
                 } else {
                   Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    val calendar = java.util.Calendar.getInstance()
                     AppTextField(strings["label_name"], value = signUpName, onValueChange = { signUpName = it })
                     AppTextField(strings["label_email"], value = signUpEmail, onValueChange = { signUpEmail = it })
-                    AppTextField(strings["label_phone"], value = signUpPhone, onValueChange = { signUpPhone = it })
                     AppDropdown(
                       label = strings["label_country"],
                       placeholder = strings["placeholder_country"],
@@ -1127,28 +1201,11 @@ fun TabunganApp() {
                       selected = signUpCountry,
                       onSelected = { signUpCountry = it },
                     )
-                    AppTextField(
-                      strings["label_birthdate"],
+                    DateField(
+                      label = strings["label_birthdate"],
                       value = signUpBirthdate,
                       onValueChange = { signUpBirthdate = it },
                       placeholder = strings["placeholder_date"],
-                      trailing = {
-                        Text(
-                          text = "📅",
-                          modifier = Modifier.clickable {
-                            val dialog = DatePickerDialog(
-                              context,
-                              { _, year, month, dayOfMonth ->
-                                signUpBirthdate = String.format("%02d-%02d-%04d", dayOfMonth, month + 1, year)
-                              },
-                              calendar.get(java.util.Calendar.YEAR),
-                              calendar.get(java.util.Calendar.MONTH),
-                              calendar.get(java.util.Calendar.DAY_OF_MONTH),
-                            )
-                            dialog.show()
-                          },
-                        )
-                      },
                     )
                     AppTextField(strings["label_bio"], value = signUpBio, onValueChange = { signUpBio = it }, minLines = 2)
                     AppTextField(strings["label_username"], value = signUpUsername, onValueChange = { signUpUsername = it })
@@ -1174,11 +1231,10 @@ fun TabunganApp() {
                           val newUser = SupabaseUser(
                             name = signUpName,
                             email = normalizedEmail,
-                            phone = signUpPhone,
                             country = signUpCountry,
                             bio = signUpBio,
                             birthdate = signUpBirthdate,
-                            createdAt = Instant.now().toString(),
+                            createdAt = nowJakartaText(),
                             username = normalizedUsername,
                             password = signUpPassword,
                           )
@@ -1203,7 +1259,11 @@ fun TabunganApp() {
                     }
                 }
               }
-                GhostButton(text = strings["close"]) { showAuth = false }
+                GhostButton(text = strings["close"]) {
+                  requestConfirm(strings["exit_confirm"]) {
+                    (context as? android.app.Activity)?.finish()
+                  }
+                }
               }
             }
           }
@@ -1263,9 +1323,8 @@ fun TabunganApp() {
                         ) {
                           Text(text = user.name, fontWeight = FontWeight.Bold)
                           Text(text = user.email, color = colors.muted, fontSize = 12.sp)
-                          Text(text = user.phone, color = colors.muted, fontSize = 12.sp)
                           Text(text = user.country, color = colors.muted, fontSize = 12.sp)
-                          Text(text = user.createdAt, color = colors.muted, fontSize = 12.sp)
+                          Text(text = formatCreatedAt(user.createdAt), color = colors.muted, fontSize = 12.sp)
                         }
                       }
                     }
@@ -1346,7 +1405,6 @@ private fun clearAuthFields(
   onSignInPassword: (String) -> Unit,
   onSignUpName: (String) -> Unit,
   onSignUpEmail: (String) -> Unit,
-  onSignUpPhone: (String) -> Unit,
   onSignUpCountry: (String) -> Unit,
   onSignUpBirthdate: (String) -> Unit,
   onSignUpBio: (String) -> Unit,
@@ -1357,7 +1415,6 @@ private fun clearAuthFields(
   onSignInPassword("")
   onSignUpName("")
   onSignUpEmail("")
-  onSignUpPhone("")
   onSignUpCountry("")
   onSignUpBirthdate("")
   onSignUpBio("")

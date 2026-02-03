@@ -6,6 +6,10 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.TimeZone
 
 enum class EntryType { Income, Expense }
 
@@ -41,10 +45,10 @@ data class UserProfile(
   val id: String = "",
   val name: String,
   val email: String,
-  val phone: String,
   val country: String,
   val birthdate: String,
   val bio: String,
+  val createdAt: String,
   val username: String,
   val password: String,
 )
@@ -111,6 +115,41 @@ fun toDbDate(text: String): String {
 fun toUiDate(text: String): String {
   val millis = parseDate(text) ?: return text
   return SimpleDateFormat("dd-MM-yyyy", Locale.US).format(Date(millis))
+}
+
+private val JAKARTA_ZONE = ZoneId.of("Asia/Jakarta")
+private val CREATED_AT_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss")
+private val CREATED_AT_PARSER = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.US).apply {
+  isLenient = false
+  timeZone = TimeZone.getTimeZone("Asia/Jakarta")
+}
+
+fun nowJakartaText(): String {
+  return CREATED_AT_FORMATTER.format(Instant.now().atZone(JAKARTA_ZONE))
+}
+
+fun parseCreatedAtMillis(text: String): Long? {
+  if (text.isBlank()) return null
+  return try {
+    Instant.parse(text).toEpochMilli()
+  } catch (ex: Exception) {
+    try {
+      CREATED_AT_PARSER.parse(text)?.time
+    } catch (ex: Exception) {
+      null
+    }
+  }
+}
+
+fun formatCreatedAt(text: String): String {
+  if (text.isBlank()) return "-"
+  return try {
+    val instant = Instant.parse(text)
+    CREATED_AT_FORMATTER.format(instant.atZone(JAKARTA_ZONE))
+  } catch (ex: Exception) {
+    val millis = parseCreatedAtMillis(text) ?: return text
+    CREATED_AT_FORMATTER.format(Instant.ofEpochMilli(millis).atZone(JAKARTA_ZONE))
+  }
 }
 
 enum class SummaryRange(val label: String) {

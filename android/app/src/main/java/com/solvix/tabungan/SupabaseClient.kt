@@ -29,8 +29,6 @@ data class SupabaseUser(
   val id: String = "",
   val name: String = "",
   val email: String = "",
-  @SerialName("phone")
-  val phone: String = "",
   val country: String = "",
   val bio: String = "",
   val birthdate: String = "",
