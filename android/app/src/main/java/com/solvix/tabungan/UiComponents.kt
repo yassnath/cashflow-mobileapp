@@ -2,11 +2,15 @@ package com.solvix.tabungan
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +27,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -33,6 +36,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -49,18 +53,27 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 object AppDimens {
@@ -283,20 +296,16 @@ fun AppDropdown(
   options: List<String>,
   selected: String,
   onSelected: (String) -> Unit,
-  modifier: Modifier = Modifier,
+  modifier: Modifier = Modifier.fillMaxWidth(),
 ) {
   val colors = LocalAppColors.current
-  val theme = LocalThemeName.current
-  val menuBorderColor = if (isDarkTheme(theme)) {
-    Color.White.copy(alpha = 0.7f)
-  } else {
-    colors.text.copy(alpha = 0.35f)
-  }
   var expanded by remember { mutableStateOf(false) }
-  var fieldWidth by remember { mutableStateOf(0.dp) }
+  var fieldWidthPx by remember { mutableStateOf(0) }
+  var anchorBounds by remember { mutableStateOf(IntRect.Zero) }
   val density = LocalDensity.current
+  val extraYOffsetPx = with(density) { 10.dp.roundToPx() }
 
-  Column(modifier = modifier.fillMaxWidth()) {
+  Column(modifier = modifier) {
     if (label.isNotBlank()) {
       Text(text = label, fontSize = 13.sp, color = colors.text)
       Spacer(modifier = Modifier.height(6.dp))
@@ -311,7 +320,14 @@ fun AppDropdown(
         .clickable { expanded = true }
         .padding(horizontal = 12.dp, vertical = 6.dp)
         .onGloballyPositioned { coordinates ->
-          fieldWidth = with(density) { coordinates.size.width.toDp() }
+          fieldWidthPx = coordinates.size.width
+          val rect = coordinates.boundsInWindow()
+          anchorBounds = IntRect(
+            rect.left.roundToInt(),
+            rect.top.roundToInt(),
+            rect.right.roundToInt(),
+            rect.bottom.roundToInt(),
+          )
         },
       contentAlignment = Alignment.CenterStart,
     ) {
@@ -324,53 +340,81 @@ fun AppDropdown(
       )
       Text(text = "▾", color = colors.muted, modifier = Modifier.align(Alignment.CenterEnd))
     }
-    DropdownMenu(
-      expanded = expanded,
-      onDismissRequest = { expanded = false },
-      modifier = Modifier
-        .width(fieldWidth)
-        .heightIn(max = 520.dp)
-        .background(Color.Transparent),
-      properties = PopupProperties(focusable = true),
-    ) {
-      Column(
-        modifier = Modifier
-          .fillMaxWidth()
-          .clip(RoundedCornerShape(18.dp))
-          .background(colors.card)
-          .border(1.dp, menuBorderColor, RoundedCornerShape(18.dp))
-          .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-      ) {
-        options.forEach { option ->
-          val isSelected = option == selected
-          val itemShape = RoundedCornerShape(10.dp)
-          val itemBackground = if (isSelected) {
-            Brush.linearGradient(listOf(colors.accent, colors.accent2))
-          } else {
-            Brush.linearGradient(listOf(colors.bg2, colors.bg2))
+    val menuScroll = rememberScrollState()
+    if (expanded) {
+      val positionProvider = remember(anchorBounds, extraYOffsetPx) {
+        object : PopupPositionProvider {
+          override fun calculatePosition(
+            anchorBoundsIgnored: IntRect,
+            windowSize: IntSize,
+            layoutDirection: LayoutDirection,
+            popupContentSize: IntSize,
+          ): IntOffset {
+            val bounds = anchorBounds
+            var x = if (layoutDirection == LayoutDirection.Rtl) {
+              bounds.right - popupContentSize.width
+            } else {
+              bounds.left
+            }
+            val downY = bounds.bottom + extraYOffsetPx
+            val upY = bounds.top - popupContentSize.height - extraYOffsetPx
+            var y = if (downY + popupContentSize.height <= windowSize.height) downY else upY
+            if (x + popupContentSize.width > windowSize.width) {
+              x = windowSize.width - popupContentSize.width
+            }
+            if (x < 0) x = 0
+            if (y < 0) y = 0
+            return IntOffset(x, y)
           }
-          Box(
-            modifier = Modifier
-              .fillMaxWidth()
-              .height(34.dp)
-              .clip(itemShape)
-              .background(itemBackground)
-              .clickable {
-                onSelected(option)
-                expanded = false
-              }
-              .padding(10.dp),
-            contentAlignment = Alignment.CenterStart,
-          ) {
-            Text(
-              text = option,
-              color = if (isSelected) Color.White else colors.text,
-              fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-              fontSize = 12.sp,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-            )
+        }
+      }
+      val menuWidth = with(density) { fieldWidthPx.toDp() }
+      Popup(
+        popupPositionProvider = positionProvider,
+        properties = PopupProperties(focusable = true),
+        onDismissRequest = { expanded = false },
+      ) {
+        Column(
+          modifier = Modifier
+            .width(menuWidth)
+            .clip(RoundedCornerShape(18.dp))
+            .background(colors.card)
+            .border(1.dp, colors.fieldBorder, RoundedCornerShape(18.dp))
+            .padding(12.dp)
+            .heightIn(max = 360.dp)
+            .verticalScroll(menuScroll),
+          verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+          options.forEach { option ->
+            val isSelected = option == selected
+            val itemShape = RoundedCornerShape(10.dp)
+            val itemBackground = if (isSelected) {
+              Brush.linearGradient(listOf(colors.accent, colors.accent2))
+            } else {
+              Brush.linearGradient(listOf(colors.bg2, colors.bg2))
+            }
+            Box(
+              modifier = Modifier
+                .fillMaxWidth()
+                .height(34.dp)
+                .clip(itemShape)
+                .background(itemBackground)
+                .clickable {
+                  onSelected(option)
+                  expanded = false
+                }
+                .padding(10.dp),
+              contentAlignment = Alignment.CenterStart,
+            ) {
+              Text(
+                text = option,
+                color = if (isSelected) Color.White else colors.text,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+              )
+            }
           }
         }
       }
@@ -513,21 +557,18 @@ fun ToastMessage(text: String, visible: Boolean, modifier: Modifier = Modifier) 
 
 @Composable
 fun FadeInPage(key: Any?, content: @Composable () -> Unit) {
-    var targetAlpha by remember(key) { mutableStateOf(0f) }
-    LaunchedEffect(key) {
-      targetAlpha = 0f
-      delay(10)
-      targetAlpha = 1f
-    }
-    val alpha by animateFloatAsState(
-      targetValue = targetAlpha,
-      animationSpec = tween(durationMillis = 360),
-      label = "page-fade",
+  val alphaAnim = remember { Animatable(0f) }
+  LaunchedEffect(key) {
+    alphaAnim.snapTo(0f)
+    alphaAnim.animateTo(
+      targetValue = 1f,
+      animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
     )
-    Box(modifier = Modifier.alpha(alpha)) {
-      content()
-    }
   }
+  Box(modifier = Modifier.graphicsLayer { alpha = alphaAnim.value }) {
+    content()
+  }
+}
 
 @Composable
 fun IconCircle(emoji: String, size: Dp = 28.dp) {
@@ -548,19 +589,59 @@ fun DropDownMenuCard(
   expanded: Boolean,
   onDismiss: () -> Unit,
   modifier: Modifier = Modifier,
+  anchorBounds: IntRect = IntRect.Zero,
+  alignRight: Boolean = true,
+  xOffsetDp: Dp = 0.dp,
+  yOffsetDp: Dp = 10.dp,
   content: @Composable ColumnScope.() -> Unit,
 ) {
+  if (!expanded) return
   val colors = LocalAppColors.current
-  DropdownMenu(
-    expanded = expanded,
-    onDismissRequest = onDismiss,
-    modifier = modifier
-      .background(colors.card)
-      .border(2.dp, colors.accent, RoundedCornerShape(18.dp))
-      .padding(12.dp),
+  val density = LocalDensity.current
+  val extraYOffsetPx = with(density) { yOffsetDp.roundToPx() }
+  val extraXOffsetPx = with(density) { xOffsetDp.roundToPx() }
+  val positionProvider = remember(anchorBounds, alignRight, extraYOffsetPx, extraXOffsetPx) {
+    object : PopupPositionProvider {
+      override fun calculatePosition(
+        anchorBoundsIgnored: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+      ): IntOffset {
+        val bounds = anchorBounds
+        var x = if (alignRight) {
+          bounds.right - popupContentSize.width
+        } else if (layoutDirection == LayoutDirection.Rtl) {
+          bounds.right - popupContentSize.width
+        } else {
+          bounds.left
+        }
+        x += extraXOffsetPx
+        val downY = bounds.bottom + extraYOffsetPx
+        val upY = bounds.top - popupContentSize.height - extraYOffsetPx
+        var y = if (downY + popupContentSize.height <= windowSize.height) downY else upY
+        if (x + popupContentSize.width > windowSize.width) {
+          x = windowSize.width - popupContentSize.width
+        }
+        if (x < 0) x = 0
+        if (y < 0) y = 0
+        return IntOffset(x, y)
+      }
+    }
+  }
+  Popup(
+    popupPositionProvider = positionProvider,
     properties = PopupProperties(focusable = true),
+    onDismissRequest = onDismiss,
   ) {
-    Column(content = content)
+    Column(
+      modifier = modifier
+        .clip(RoundedCornerShape(18.dp))
+        .background(colors.card, RoundedCornerShape(18.dp))
+        .border(2.dp, colors.accent, RoundedCornerShape(18.dp))
+        .padding(12.dp),
+      content = content,
+    )
   }
 }
 

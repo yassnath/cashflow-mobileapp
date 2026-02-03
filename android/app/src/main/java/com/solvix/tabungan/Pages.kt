@@ -11,11 +11,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -179,6 +178,8 @@ fun IncomePage(
   onSave: (MoneyEntry) -> Unit,
   onUpdate: (MoneyEntry) -> Unit,
   onDelete: (MoneyEntry) -> Unit,
+  editEntry: MoneyEntry?,
+  onEditConsumed: () -> Unit,
   strings: AppStrings,
 ) {
   val language = LocalLanguage.current
@@ -189,6 +190,20 @@ fun IncomePage(
   var channel by rememberSaveable { mutableStateOf("") }
   var note by rememberSaveable { mutableStateOf("") }
   var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+
+  LaunchedEffect(editEntry?.id) {
+    val entry = editEntry
+    if (entry != null && entry.type == EntryType.Income) {
+      editingId = entry.id
+      amount = entry.amount.toString()
+      date = entry.date
+      category = entry.category
+      source = entry.sourceOrMethod
+      channel = entry.channelOrBank
+      note = entry.note
+      onEditConsumed()
+    }
+  }
 
   Column {
     SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Income), title = strings["section_income_title"], subtitle = strings["section_income_subtitle"])
@@ -246,21 +261,6 @@ fun IncomePage(
         )
       }
     }
-
-    EntryList(
-      title = strings["list_income"],
-      entries = entries,
-      onEdit = { entry ->
-        editingId = entry.id
-        amount = entry.amount.toString()
-        date = entry.date
-        category = entry.category
-        source = entry.sourceOrMethod
-        channel = entry.channelOrBank
-        note = entry.note
-      },
-      onDelete = onDelete,
-    )
   }
 }
 
@@ -270,6 +270,8 @@ fun ExpensePage(
   onSave: (MoneyEntry) -> Unit,
   onUpdate: (MoneyEntry) -> Unit,
   onDelete: (MoneyEntry) -> Unit,
+  editEntry: MoneyEntry?,
+  onEditConsumed: () -> Unit,
   strings: AppStrings,
 ) {
   val language = LocalLanguage.current
@@ -280,6 +282,20 @@ fun ExpensePage(
   var bank by rememberSaveable { mutableStateOf("") }
   var note by rememberSaveable { mutableStateOf("") }
   var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+
+  LaunchedEffect(editEntry?.id) {
+    val entry = editEntry
+    if (entry != null && entry.type == EntryType.Expense) {
+      editingId = entry.id
+      amount = entry.amount.toString()
+      date = entry.date
+      category = entry.category
+      method = entry.sourceOrMethod
+      bank = entry.channelOrBank
+      note = entry.note
+      onEditConsumed()
+    }
+  }
 
   Column {
     SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Expense), title = strings["section_expense_title"], subtitle = strings["section_expense_subtitle"])
@@ -337,21 +353,6 @@ fun ExpensePage(
         )
       }
     }
-
-    EntryList(
-      title = strings["list_expense"],
-      entries = entries,
-      onEdit = { entry ->
-        editingId = entry.id
-        amount = entry.amount.toString()
-        date = entry.date
-        category = entry.category
-        method = entry.sourceOrMethod
-        bank = entry.channelOrBank
-        note = entry.note
-      },
-      onDelete = onDelete,
-    )
   }
 }
 
@@ -458,19 +459,6 @@ fun DreamsPage(
         )
       }
     }
-
-    DreamsList(
-      entries = entries,
-      onEdit = { entry ->
-        editingId = entry.id
-        title = entry.title
-        target = entry.target.toString()
-        current = entry.current.toString()
-        deadline = entry.deadline
-        note = entry.note
-      },
-      onDelete = onDelete,
-    )
   }
 }
 
@@ -667,10 +655,26 @@ private fun ReportLine(label: String, value: String, positive: Boolean) {
 }
 
 @Composable
-fun HistoryPage(entries: List<MoneyEntry>, strings: AppStrings) {
+fun HistoryPage(
+  entries: List<MoneyEntry>,
+  strings: AppStrings,
+  onEdit: (MoneyEntry) -> Unit,
+  onDelete: (MoneyEntry) -> Unit,
+) {
   val colors = LocalAppColors.current
-  var fromDate by rememberSaveable { mutableStateOf("") }
-  var toDate by rememberSaveable { mutableStateOf("") }
+  val defaultRange = remember {
+    val now = Calendar.getInstance()
+    val formatter = SimpleDateFormat("dd-MM-yyyy", Locale.US)
+    val start = Calendar.getInstance().apply {
+      set(Calendar.DAY_OF_MONTH, 1)
+    }.time
+    val end = Calendar.getInstance().apply {
+      set(Calendar.DAY_OF_MONTH, now.getActualMaximum(Calendar.DAY_OF_MONTH))
+    }.time
+    formatter.format(start) to formatter.format(end)
+  }
+  var fromDate by rememberSaveable { mutableStateOf(defaultRange.first) }
+  var toDate by rememberSaveable { mutableStateOf(defaultRange.second) }
   val filtered = entries.filter { entry ->
     val date = parseDate(entry.date) ?: return@filter false
     val from = parseDate(fromDate)
@@ -679,6 +683,7 @@ fun HistoryPage(entries: List<MoneyEntry>, strings: AppStrings) {
     val beforeTo = to == null || date <= to
     afterFrom && beforeTo
   }
+  val sorted = filtered.sortedByDescending { entry -> parseDate(entry.date) ?: 0L }
   val incomeTotal = filtered.filter { it.type == EntryType.Income }.sumOf { it.amount }
   val expenseTotal = filtered.filter { it.type == EntryType.Expense }.sumOf { it.amount }
 
@@ -711,10 +716,9 @@ fun HistoryPage(entries: List<MoneyEntry>, strings: AppStrings) {
 
     EntryList(
       title = strings["section_history_title"],
-      entries = filtered,
-      onEdit = {},
-      onDelete = {},
-      readonly = true,
+      entries = sorted,
+      onEdit = onEdit,
+      onDelete = onDelete,
     )
     if (filtered.isEmpty()) {
       Spacer(modifier = Modifier.height(10.dp))
@@ -952,8 +956,8 @@ private fun EntryList(
   Spacer(modifier = Modifier.height(12.dp))
   Text(text = title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = colors.text)
   Spacer(modifier = Modifier.height(8.dp))
-  LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-    items(entries, key = { it.id }) { entry ->
+  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    entries.forEach { entry ->
       EntryCard(entry = entry, onEdit = onEdit, onDelete = onDelete, readonly = readonly)
     }
   }
@@ -967,20 +971,55 @@ private fun EntryCard(
   readonly: Boolean,
 ) {
   val colors = LocalAppColors.current
+  val isDark = isDarkTheme(LocalThemeName.current)
+  val amountColor = when (entry.type) {
+    EntryType.Income -> if (isDark) Color(0xFF7BE27A) else Color(0xFF2E7D32)
+    EntryType.Expense -> if (isDark) Color(0xFFFF8A80) else Color(0xFFC62828)
+  }
   val strings = LocalStrings.current
+  val typeLabel = if (entry.type == EntryType.Income) strings["page_income"] else strings["page_expense"]
+  val amountText = if (entry.type == EntryType.Income) "+ ${formatRupiah(entry.amount)}" else "- ${formatRupiah(entry.amount)}"
+  val sourceText = entry.sourceOrMethod.ifBlank { "-" }
+  val bankText = entry.channelOrBank.ifBlank { "-" }
+  val sourceLabel = if (entry.type == EntryType.Income) strings["label_source"] else strings["label_method"]
+  val bankLabel = if (entry.type == EntryType.Income) strings["label_channel"] else strings["label_bank"]
+  val noteText = entry.note.ifBlank { "-" }
   AppCard(shape = RoundedCornerShape(AppDimens.radiusMd)) {
-    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-      Text(text = entry.category, fontWeight = FontWeight.Bold, color = colors.text)
-      Text(text = formatRupiah(entry.amount), fontWeight = FontWeight.Bold, color = colors.text)
-    }
-    Text(text = "${entry.date} • ${entry.sourceOrMethod}", color = colors.muted, fontSize = 12.sp)
-    if (entry.note.isNotBlank()) {
-      Text(text = entry.note, color = colors.muted, fontSize = 12.sp)
-    }
-    if (!readonly) {
-      Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        GhostButton(text = strings["edit"], fillMaxWidth = false, modifier = Modifier.weight(1f), onClick = { onEdit(entry) })
-        GhostButton(text = strings["delete"], fillMaxWidth = false, modifier = Modifier.weight(1f), onClick = { onDelete(entry) })
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+      Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+        Text(text = typeLabel, fontWeight = FontWeight.Bold, color = colors.text)
+        Text(text = amountText, fontWeight = FontWeight.Bold, color = amountColor)
+      }
+      Text(text = entry.date, color = colors.muted, fontSize = 12.sp)
+      Text(text = "${strings["label_category"]}: ${entry.category}", color = colors.muted, fontSize = 12.sp)
+      Text(text = "$sourceLabel: $sourceText", color = colors.muted, fontSize = 12.sp)
+      Text(text = "$bankLabel: $bankText", color = colors.muted, fontSize = 12.sp)
+      Text(text = "${strings["label_note"]}: $noteText", color = colors.muted, fontSize = 12.sp)
+      if (!readonly) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+          Box(
+            modifier = Modifier
+              .weight(1f)
+              .heightIn(min = 40.dp)
+              .clip(RoundedCornerShape(12.dp))
+              .background(Brush.linearGradient(listOf(colors.accent, colors.accent2)))
+              .clickable { onEdit(entry) },
+            contentAlignment = Alignment.Center,
+          ) {
+            Text(text = strings["edit"], color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+          }
+          Box(
+            modifier = Modifier
+              .weight(1f)
+              .heightIn(min = 40.dp)
+              .clip(RoundedCornerShape(12.dp))
+              .background(Color(0xFFD32F2F))
+              .clickable { onDelete(entry) },
+            contentAlignment = Alignment.Center,
+          ) {
+            Text(text = strings["delete"], color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+          }
+        }
       }
     }
   }
@@ -1108,8 +1147,8 @@ private fun SavingList(
   Spacer(modifier = Modifier.height(12.dp))
   Text(text = strings["list_saving"], fontWeight = FontWeight.Bold, fontSize = 14.sp)
   Spacer(modifier = Modifier.height(8.dp))
-  LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-    items(entries, key = { it.id }) { entry ->
+  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    entries.forEach { entry ->
       AppCard(shape = RoundedCornerShape(AppDimens.radiusMd)) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
           Text(text = entry.goal, fontWeight = FontWeight.Bold)
@@ -1139,8 +1178,8 @@ private fun DreamsList(
   Spacer(modifier = Modifier.height(12.dp))
   Text(text = strings["list_dreams"], fontWeight = FontWeight.Bold, fontSize = 14.sp)
   Spacer(modifier = Modifier.height(8.dp))
-  LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-    items(entries, key = { it.id }) { entry ->
+  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    entries.forEach { entry ->
       AppCard(shape = RoundedCornerShape(AppDimens.radiusMd)) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
           Text(text = entry.title, fontWeight = FontWeight.Bold)

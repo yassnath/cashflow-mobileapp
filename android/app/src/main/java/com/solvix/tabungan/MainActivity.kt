@@ -20,7 +20,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -32,7 +31,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -62,11 +60,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.core.content.ContextCompat
 import androidx.biometric.BiometricManager
@@ -80,6 +83,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
+import kotlin.math.roundToInt
 import kotlinx.serialization.json.put
 import java.time.Instant
 
@@ -111,11 +115,11 @@ private enum class LoadingTarget { Startup, Logout }
 @Composable
 fun TabunganApp() {
   var currentTheme by rememberSaveable { mutableStateOf(ThemeName.StandardLight) }
-  var currentPage by rememberSaveable { mutableStateOf(Page.Income) }
-  var summaryRange by rememberSaveable { mutableStateOf(SummaryRange.Month) }
-  var showProfileMenu by remember { mutableStateOf(false) }
-  var showSplash by rememberSaveable { mutableStateOf(false) }
-  var showLoading by rememberSaveable { mutableStateOf(true) }
+    var currentPage by rememberSaveable { mutableStateOf(Page.Income) }
+    var summaryRange by rememberSaveable { mutableStateOf(SummaryRange.Month) }
+    var showProfileMenu by remember { mutableStateOf(false) }
+    var showSplash by rememberSaveable { mutableStateOf(false) }
+    var showLoading by rememberSaveable { mutableStateOf(true) }
   var loadingFadeOut by rememberSaveable { mutableStateOf(false) }
   var loadingTarget by rememberSaveable { mutableStateOf(LoadingTarget.Startup) }
   var showAuth by rememberSaveable { mutableStateOf(false) }
@@ -127,9 +131,10 @@ fun TabunganApp() {
   val adminUsers = remember { mutableStateListOf<SupabaseUser>() }
   var showConfirm by remember { mutableStateOf(false) }
   var confirmMessage by remember { mutableStateOf("") }
-  var confirmAction by remember { mutableStateOf<(() -> Unit)?>(null) }
-  var showAlert by remember { mutableStateOf(false) }
-  var alertMessage by remember { mutableStateOf("") }
+    var confirmAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var showAlert by remember { mutableStateOf(false) }
+    var alertMessage by remember { mutableStateOf("") }
+    var pendingEdit by remember { mutableStateOf<MoneyEntry?>(null) }
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("tabungan_prefs", Context.MODE_PRIVATE) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -144,9 +149,13 @@ fun TabunganApp() {
       lifecycleOwner.lifecycle.addObserver(observer)
       onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    LaunchedEffect(currentPage) {
-      pageFadeSeed += 1
-    }
+      fun navigateTo(page: Page) {
+        if (currentPage == page) {
+          pageFadeSeed += 1
+          return
+        }
+        currentPage = page
+      }
     var toastVisible by remember { mutableStateOf(false) }
   var toastMessage by remember { mutableStateOf("") }
   val defaultLang = prefs.getString("app_language", "EN") ?: "EN"
@@ -157,6 +166,14 @@ fun TabunganApp() {
   var currentUser by remember { mutableStateOf<UserProfile?>(null) }
   val scope = rememberCoroutineScope()
   var isLoggedIn by remember { mutableStateOf(false) }
+    LaunchedEffect(currentPage) {
+      pageFadeSeed += 1
+    }
+    LaunchedEffect(showAuth, showSplash, isLoggedIn) {
+      if (!showAuth && !showSplash && isLoggedIn) {
+        pageFadeSeed += 1
+      }
+    }
   var hasSeenWelcome by remember { mutableStateOf(prefs.getBoolean("has_seen_welcome", false)) }
   var fingerprintEnabled by rememberSaveable { mutableStateOf(prefs.getBoolean("fingerprint_enabled", false)) }
   var hasRegistered by rememberSaveable { mutableStateOf(prefs.getBoolean("has_registered", false)) }
@@ -657,7 +674,7 @@ fun TabunganApp() {
             Box {
               BottomNav(
                 current = currentPage,
-                onSelect = { page -> currentPage = page },
+                onSelect = { page -> navigateTo(page) },
                 strings = strings,
                 theme = currentTheme,
                 modifier = Modifier.then(if (navBlur) Modifier.blur(24.dp) else Modifier),
@@ -681,67 +698,66 @@ fun TabunganApp() {
           }
           val activeUserId = currentUser?.id.orEmpty()
           Box(modifier = Modifier.fillMaxSize()) {
-            LazyColumn(
+            Column(
               modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .then(if (blurRadius.value > 0f) Modifier.blur(blurRadius) else Modifier),
-              contentPadding = PaddingValues(
-                start = AppDimens.pagePadding,
-                end = AppDimens.pagePadding,
-                bottom = 24.dp,
-                top = 0.dp,
-              ),
+                .then(if (blurRadius.value > 0f) Modifier.blur(blurRadius) else Modifier)
+                .verticalScroll(rememberScrollState())
+                .padding(
+                  start = AppDimens.pagePadding,
+                  end = AppDimens.pagePadding,
+                  bottom = 24.dp,
+                  top = 0.dp,
+                ),
               verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-              item {
-                TopBar(
-                  onProfileClick = { showProfileMenu = true },
-                  showMenu = showProfileMenu,
-                  onDismissMenu = { showProfileMenu = false },
-                  onNavigate = { page ->
-                    currentPage = page
-                    showProfileMenu = false
-                  },
-                  onAdmin = { showAdmin = true },
-                  onLogout = {
-                    showProfileMenu = false
-                    requestConfirm(strings["logout_confirm"]) {
-                      isLoggedIn = false
-                      currentUser = null
-                      showSplash = false
-                      showAuth = false
-                      loadingTarget = LoadingTarget.Logout
-                      showLoading = true
-                      clearAuthFields(
-                        onSignInUsername = { signInUsername = it },
-                        onSignInPassword = { signInPassword = it },
-                        onSignUpName = { signUpName = it },
-                        onSignUpEmail = { signUpEmail = it },
-                        onSignUpPhone = { signUpPhone = it },
-                        onSignUpCountry = { signUpCountry = it },
-                        onSignUpBirthdate = { signUpBirthdate = it },
-                        onSignUpBio = { signUpBio = it },
-                        onSignUpUsername = { signUpUsername = it },
-                        onSignUpPassword = { signUpPassword = it },
-                      )
-                      toastMessage = strings["logout_success"]
-                      toastVisible = true
-                    }
-                  },
-                  displayName = displayName,
-                  displayUsername = displayUsername,
-                  strings = strings,
-                  theme = currentTheme,
-                )
-              }
+              FadeInPage(key = "${currentPage}_${fadeSeed}_${pageFadeSeed}_page") {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                  TopBar(
+                    onProfileClick = { showProfileMenu = true },
+                    showMenu = showProfileMenu,
+                    onDismissMenu = { showProfileMenu = false },
+                    onNavigate = { page ->
+                      navigateTo(page)
+                      showProfileMenu = false
+                    },
+                    onAdmin = { showAdmin = true },
+                    onLogout = {
+                      showProfileMenu = false
+                      requestConfirm(strings["logout_confirm"]) {
+                        isLoggedIn = false
+                        currentUser = null
+                        showSplash = false
+                        showAuth = false
+                        loadingTarget = LoadingTarget.Logout
+                        showLoading = true
+                        clearAuthFields(
+                          onSignInUsername = { signInUsername = it },
+                          onSignInPassword = { signInPassword = it },
+                          onSignUpName = { signUpName = it },
+                          onSignUpEmail = { signUpEmail = it },
+                          onSignUpPhone = { signUpPhone = it },
+                          onSignUpCountry = { signUpCountry = it },
+                          onSignUpBirthdate = { signUpBirthdate = it },
+                          onSignUpBio = { signUpBio = it },
+                          onSignUpUsername = { signUpUsername = it },
+                          onSignUpPassword = { signUpPassword = it },
+                        )
+                        toastMessage = strings["logout_success"]
+                        toastVisible = true
+                      }
+                    },
+                    displayName = displayName,
+                    displayUsername = displayUsername,
+                    strings = strings,
+                    theme = currentTheme,
+                  )
 
-              if (currentPage.showHero()) {
-                val filtered = filterByRange(incomeEntries + expenseEntries, summaryRange)
-                val incomeTotal = filtered.filter { it.type == EntryType.Income }.sumOf { it.amount }
-                val expenseTotal = filtered.filter { it.type == EntryType.Expense }.sumOf { it.amount }
-                item {
-                  FadeInPage(key = "${currentPage}_${fadeSeed}_${pageFadeSeed}") {
+                  if (currentPage.showHero()) {
+                    val filtered = filterByRange(incomeEntries + expenseEntries, summaryRange)
+                    val incomeTotal = filtered.filter { it.type == EntryType.Income }.sumOf { it.amount }
+                    val expenseTotal = filtered.filter { it.type == EntryType.Expense }.sumOf { it.amount }
                     HeroSummary(
                       range = summaryRange,
                       onRangeChange = { summaryRange = it },
@@ -750,62 +766,66 @@ fun TabunganApp() {
                       strings = strings,
                     )
                   }
-                }
-              }
 
-              item {
-                FadeInPage(key = "${currentPage}_${fadeSeed}_${pageFadeSeed}") {
                   when (currentPage) {
                     Page.Income -> IncomePage(
-                      entries = incomeEntries,
-                      onSave = { entry ->
-                        incomeEntries.add(entry)
-                        if (activeUserId.isNotBlank()) {
-                          scope.launch(Dispatchers.IO) { insertMoneyEntry(activeUserId, entry) }
-                        }
-                      },
-                      onUpdate = { entry ->
-                        val index = incomeEntries.indexOfFirst { it.id == entry.id }
-                        if (index >= 0) incomeEntries[index] = entry
-                        if (activeUserId.isNotBlank()) {
-                          scope.launch(Dispatchers.IO) { updateMoneyEntry(entry) }
-                        }
-                      },
-                      onDelete = { entry ->
-                        requestConfirm(strings["confirm_delete_income"]) {
-                          incomeEntries.removeAll { it.id == entry.id }
+                        entries = incomeEntries,
+                        onSave = { entry ->
+                          incomeEntries.add(entry)
                           if (activeUserId.isNotBlank()) {
-                            scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
+                            scope.launch(Dispatchers.IO) { insertMoneyEntry(activeUserId, entry) }
                           }
-                        }
-                      },
-                      strings = strings,
-                    )
+                          toastMessage = strings["income_added"]
+                          toastVisible = true
+                        },
+                        onUpdate = { entry ->
+                          val index = incomeEntries.indexOfFirst { it.id == entry.id }
+                          if (index >= 0) incomeEntries[index] = entry
+                          if (activeUserId.isNotBlank()) {
+                            scope.launch(Dispatchers.IO) { updateMoneyEntry(entry) }
+                          }
+                        },
+                        onDelete = { entry ->
+                          requestConfirm(strings["confirm_delete_income"]) {
+                            incomeEntries.removeAll { it.id == entry.id }
+                            if (activeUserId.isNotBlank()) {
+                              scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
+                            }
+                          }
+                        },
+                        editEntry = pendingEdit,
+                        onEditConsumed = { pendingEdit = null },
+                        strings = strings,
+                      )
                     Page.Expense -> ExpensePage(
-                      entries = expenseEntries,
-                      onSave = { entry ->
-                        expenseEntries.add(entry)
-                        if (activeUserId.isNotBlank()) {
-                          scope.launch(Dispatchers.IO) { insertMoneyEntry(activeUserId, entry) }
-                        }
-                      },
-                      onUpdate = { entry ->
-                        val index = expenseEntries.indexOfFirst { it.id == entry.id }
-                        if (index >= 0) expenseEntries[index] = entry
-                        if (activeUserId.isNotBlank()) {
-                          scope.launch(Dispatchers.IO) { updateMoneyEntry(entry) }
-                        }
-                      },
-                      onDelete = { entry ->
-                        requestConfirm(strings["confirm_delete_expense"]) {
-                          expenseEntries.removeAll { it.id == entry.id }
+                        entries = expenseEntries,
+                        onSave = { entry ->
+                          expenseEntries.add(entry)
                           if (activeUserId.isNotBlank()) {
-                            scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
+                            scope.launch(Dispatchers.IO) { insertMoneyEntry(activeUserId, entry) }
                           }
-                        }
-                      },
-                      strings = strings,
-                    )
+                          toastMessage = strings["expense_added"]
+                          toastVisible = true
+                        },
+                        onUpdate = { entry ->
+                          val index = expenseEntries.indexOfFirst { it.id == entry.id }
+                          if (index >= 0) expenseEntries[index] = entry
+                          if (activeUserId.isNotBlank()) {
+                            scope.launch(Dispatchers.IO) { updateMoneyEntry(entry) }
+                          }
+                        },
+                        onDelete = { entry ->
+                          requestConfirm(strings["confirm_delete_expense"]) {
+                            expenseEntries.removeAll { it.id == entry.id }
+                            if (activeUserId.isNotBlank()) {
+                              scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
+                            }
+                          }
+                        },
+                        editEntry = pendingEdit,
+                        onEditConsumed = { pendingEdit = null },
+                        strings = strings,
+                      )
                     Page.Dreams -> DreamsPage(
                       entries = dreamEntries,
                       onSave = { entry ->
@@ -813,6 +833,8 @@ fun TabunganApp() {
                         if (activeUserId.isNotBlank()) {
                           scope.launch(Dispatchers.IO) { insertDreamEntry(activeUserId, entry) }
                         }
+                        toastMessage = strings["dream_added"]
+                        toastVisible = true
                       },
                       onUpdate = { entry ->
                         val index = dreamEntries.indexOfFirst { it.id == entry.id }
@@ -831,7 +853,26 @@ fun TabunganApp() {
                       },
                       strings = strings,
                     )
-                    Page.History -> HistoryPage(entries = incomeEntries + expenseEntries, strings = strings)
+                    Page.History -> HistoryPage(
+                      entries = incomeEntries + expenseEntries,
+                      strings = strings,
+                      onEdit = { entry ->
+                        pendingEdit = entry
+                        navigateTo(if (entry.type == EntryType.Income) Page.Income else Page.Expense)
+                      },
+                      onDelete = { entry ->
+                        val confirmKey = if (entry.type == EntryType.Income) "confirm_delete_income" else "confirm_delete_expense"
+                        requestConfirm(strings[confirmKey]) {
+                          when (entry.type) {
+                            EntryType.Income -> incomeEntries.removeAll { it.id == entry.id }
+                            EntryType.Expense -> expenseEntries.removeAll { it.id == entry.id }
+                          }
+                          if (activeUserId.isNotBlank()) {
+                            scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
+                          }
+                        }
+                      },
+                    )
                     Page.Saving -> SavingPage(
                       entries = savingEntries,
                       onSave = { entry ->
@@ -950,18 +991,15 @@ fun TabunganApp() {
                   }
                 }
               }
-
-              item {
-                Text(
-                  text = strings["footer"],
-                  color = colors.muted,
-                  fontSize = 11.sp,
-                  modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 0.dp),
-                  textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
-              }
+              Text(
+                text = strings["footer"],
+                color = colors.muted,
+                fontSize = 11.sp,
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(bottom = 0.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+              )
             }
             if (showSplash || showAuth) {
               Box(
@@ -1341,6 +1379,7 @@ private fun TopBar(
   theme: ThemeName,
 ) {
   val colors = LocalAppColors.current
+  var menuAnchorBounds by remember { mutableStateOf(IntRect.Zero) }
   Row(
     modifier = Modifier
       .fillMaxWidth()
@@ -1367,11 +1406,27 @@ private fun TopBar(
     }
 
     Box {
-      ChipButton(text = if (displayUsername.isBlank()) strings["guest"] else displayUsername, onClick = onProfileClick)
+      ChipButton(
+        text = if (displayUsername.isBlank()) strings["guest"] else displayUsername,
+        modifier = Modifier.onGloballyPositioned { coordinates ->
+          val rect = coordinates.boundsInWindow()
+          menuAnchorBounds = IntRect(
+            rect.left.roundToInt(),
+            rect.top.roundToInt(),
+            rect.right.roundToInt(),
+            rect.bottom.roundToInt(),
+          )
+        },
+        onClick = onProfileClick,
+      )
       DropDownMenuCard(
         expanded = showMenu,
         onDismiss = onDismissMenu,
         modifier = Modifier.width(220.dp),
+        anchorBounds = menuAnchorBounds,
+        alignRight = true,
+        xOffsetDp = (-2).dp,
+        yOffsetDp = 10.dp,
       ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
           Row(

@@ -61,7 +61,7 @@ fun formatRupiah(value: Int): String {
       count = 0
     }
   }
-  return "Rp" + builder.reverse().toString()
+  return "Rp " + builder.reverse().toString()
 }
 
 fun parseAmount(text: String): Int {
