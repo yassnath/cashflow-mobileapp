@@ -22,14 +22,7 @@ data class MoneyEntry(
   val note: String,
   val sourceOrMethod: String,
   val channelOrBank: String,
-)
-
-data class SavingEntry(
-  val id: String = UUID.randomUUID().toString(),
-  val amount: Int,
-  val date: String,
-  val goal: String,
-  val note: String,
+  val createdAt: String = "",
 )
 
 data class DreamEntry(
@@ -73,6 +66,8 @@ fun parseAmount(text: String): Int {
 }
 
 private const val DAY_MILLIS = 24 * 60 * 60 * 1000L
+private val TIME_REGEX = Regex("\\b\\d{2}:\\d{2}(:\\d{2})?\\b")
+private val TIME_ONLY_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
 
 private fun startOfDay(millis: Long): Long {
   val cal = Calendar.getInstance().apply {
@@ -89,6 +84,12 @@ fun parseDate(text: String): Long? {
   if (text.isBlank()) return null
   return try {
     val formats = listOf(
+      SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US),
+      SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.US),
+      SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.US),
+      SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US),
+      SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.US),
+      SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.US),
       SimpleDateFormat("yyyy-MM-dd", Locale.US),
       SimpleDateFormat("dd-MM-yyyy", Locale.US),
       SimpleDateFormat("dd/MM/yyyy", Locale.US),
@@ -105,6 +106,55 @@ fun parseDate(text: String): Long? {
   } catch (ex: Exception) {
     null
   }
+}
+
+fun parseDateTimeMillis(text: String): Long? {
+  if (text.isBlank()) return null
+  return try {
+    val formats = listOf(
+      SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US),
+      SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.US),
+      SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.US),
+      SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US),
+      SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.US),
+      SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.US),
+      SimpleDateFormat("yyyy-MM-dd", Locale.US),
+      SimpleDateFormat("dd-MM-yyyy", Locale.US),
+      SimpleDateFormat("dd/MM/yyyy", Locale.US),
+    )
+    val date = formats.firstNotNullOfOrNull { format ->
+      try {
+        format.isLenient = false
+        format.parse(text)
+      } catch (ex: ParseException) {
+        null
+      }
+    } ?: return null
+    date.time
+  } catch (ex: Exception) {
+    null
+  }
+}
+
+fun extractTime(text: String): String? {
+  if (text.isBlank()) return null
+  return TIME_REGEX.find(text)?.value
+}
+
+fun ensureDateHasTime(dateText: String, fallbackTime: String): String {
+  val trimmed = dateText.trim()
+  if (trimmed.isBlank()) return trimmed
+  if (extractTime(trimmed) != null) return trimmed
+  return "$trimmed $fallbackTime"
+}
+
+fun nowJakartaTime(): String {
+  return TIME_ONLY_FORMATTER.format(Instant.now().atZone(JAKARTA_ZONE))
+}
+
+fun formatTimeFromCreatedAt(text: String): String? {
+  val millis = parseCreatedAtMillis(text) ?: return null
+  return TIME_ONLY_FORMATTER.format(Instant.ofEpochMilli(millis).atZone(JAKARTA_ZONE))
 }
 
 fun toDbDate(text: String): String {

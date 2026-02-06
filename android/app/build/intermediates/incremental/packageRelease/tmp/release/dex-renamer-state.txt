@@ -1,4 +1,4 @@
-#Fri Feb 06 17:26:37 WIB 2026
+#Fri Feb 06 23:53:55 WIB 2026
 base.0=D\:\\Work\\Solvix Studio\\Website\\Tabungan Android\\android\\app\\build\\intermediates\\dex\\release\\mergeDexRelease\\classes.dex
 base.1=D\:\\Work\\Solvix Studio\\Website\\Tabungan Android\\android\\app\\build\\intermediates\\global_synthetics_dex\\release\\mergeReleaseGlobalSynthetics\\classes.dex
 base.2=D\:\\Work\\Solvix Studio\\Website\\Tabungan Android\\android\\app\\build\\intermediates\\desugar_lib_dex\\release\\l8DexDesugarLibRelease\\classes1000.dex

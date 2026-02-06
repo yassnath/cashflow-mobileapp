@@ -325,6 +325,32 @@
       externalAnnotations="annotations.zip"
       proguardRules="proguard.txt"/>
   <library
+      name="androidx.work:work-runtime-ktx:2.9.0@aar"
+      jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\f441d837690a3f0c8518b52ae67c3a3d\transformed\work-runtime-ktx-2.9.0\jars\classes.jar"
+      resolved="androidx.work:work-runtime-ktx:2.9.0"
+      folder="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\f441d837690a3f0c8518b52ae67c3a3d\transformed\work-runtime-ktx-2.9.0"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.work:work-runtime:2.9.0@aar"
+      jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\c8b223afef27748e1179096c9a3c4273\transformed\work-runtime-2.9.0\jars\classes.jar"
+      resolved="androidx.work:work-runtime:2.9.0"
+      folder="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\c8b223afef27748e1179096c9a3c4273\transformed\work-runtime-2.9.0"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
       name="io.github.jan-tennert.supabase:supabase-kt-android:2.4.1@aar"
       jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\1198bac0743ff384ee30aad3c01d5d5f\transformed\supabase-kt-release\jars\classes.jar"
       resolved="io.github.jan-tennert.supabase:supabase-kt-android:2.4.1"
@@ -351,10 +377,10 @@
       externalAnnotations="annotations.zip"
       proguardRules="proguard.txt"/>
   <library
-      name="androidx.lifecycle:lifecycle-livedata:2.7.0@aar"
-      jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\188b66e6f457897e13ea75803f27c221\transformed\lifecycle-livedata-2.7.0\jars\classes.jar"
-      resolved="androidx.lifecycle:lifecycle-livedata:2.7.0"
-      folder="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\188b66e6f457897e13ea75803f27c221\transformed\lifecycle-livedata-2.7.0"
+      name="androidx.lifecycle:lifecycle-process:2.7.0@aar"
+      jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ac584e35e5e052402d2757d8b43287eb\transformed\lifecycle-process-2.7.0\jars\classes.jar"
+      resolved="androidx.lifecycle:lifecycle-process:2.7.0"
+      folder="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ac584e35e5e052402d2757d8b43287eb\transformed\lifecycle-process-2.7.0"
       manifest="AndroidManifest.xml"
       resFolder="res"
       assetsFolder="assets"
@@ -364,10 +390,10 @@
       externalAnnotations="annotations.zip"
       proguardRules="proguard.txt"/>
   <library
-      name="androidx.lifecycle:lifecycle-process:2.7.0@aar"
-      jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ac584e35e5e052402d2757d8b43287eb\transformed\lifecycle-process-2.7.0\jars\classes.jar"
-      resolved="androidx.lifecycle:lifecycle-process:2.7.0"
-      folder="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\ac584e35e5e052402d2757d8b43287eb\transformed\lifecycle-process-2.7.0"
+      name="androidx.lifecycle:lifecycle-livedata:2.7.0@aar"
+      jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\188b66e6f457897e13ea75803f27c221\transformed\lifecycle-livedata-2.7.0\jars\classes.jar"
+      resolved="androidx.lifecycle:lifecycle-livedata:2.7.0"
+      folder="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\188b66e6f457897e13ea75803f27c221\transformed\lifecycle-livedata-2.7.0"
       manifest="AndroidManifest.xml"
       resFolder="res"
       assetsFolder="assets"
@@ -1089,6 +1115,19 @@
       jars="C:\Users\Yass\.gradle\caches\modules-2\files-2.1\androidx.lifecycle\lifecycle-common-java8\2.7.0\2ad14aed781c4a73ed4dbb421966d408a0a06686\lifecycle-common-java8-2.7.0.jar"
       resolved="androidx.lifecycle:lifecycle-common-java8:2.7.0"/>
   <library
+      name="androidx.lifecycle:lifecycle-service:2.7.0@aar"
+      jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\c6a4281a0aaae1a0b3e8b7b695b0ae70\transformed\lifecycle-service-2.7.0\jars\classes.jar"
+      resolved="androidx.lifecycle:lifecycle-service:2.7.0"
+      folder="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\c6a4281a0aaae1a0b3e8b7b695b0ae70\transformed\lifecycle-service-2.7.0"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
       name="androidx.autofill:autofill:1.0.0@aar"
       jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\d0701d5c5b41e80419e99e7744c4e730\transformed\autofill-1.0.0\jars\classes.jar"
       resolved="androidx.autofill:autofill:1.0.0"
@@ -1106,6 +1145,58 @@
       jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\a70362df204d2da1aae869f9cd6f765b\transformed\customview-poolingcontainer-1.0.0\jars\classes.jar"
       resolved="androidx.customview:customview-poolingcontainer:1.0.0"
       folder="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\a70362df204d2da1aae869f9cd6f765b\transformed\customview-poolingcontainer-1.0.0"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.room:room-ktx:2.5.0@aar"
+      jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\78dbbda5920e5e50cc73b534335cab1c\transformed\room-ktx-2.5.0\jars\classes.jar"
+      resolved="androidx.room:room-ktx:2.5.0"
+      folder="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\78dbbda5920e5e50cc73b534335cab1c\transformed\room-ktx-2.5.0"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.room:room-runtime:2.5.0@aar"
+      jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\647b9e2f2f0ba1dcac6ee7b2d53bc39e\transformed\room-runtime-2.5.0\jars\classes.jar"
+      resolved="androidx.room:room-runtime:2.5.0"
+      folder="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\647b9e2f2f0ba1dcac6ee7b2d53bc39e\transformed\room-runtime-2.5.0"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.sqlite:sqlite-framework:2.3.0@aar"
+      jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\7f8dd27025d376fcecd97a40c7d04d64\transformed\sqlite-framework-2.3.0\jars\classes.jar"
+      resolved="androidx.sqlite:sqlite-framework:2.3.0"
+      folder="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\7f8dd27025d376fcecd97a40c7d04d64\transformed\sqlite-framework-2.3.0"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.sqlite:sqlite:2.3.0@aar"
+      jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\e213a591515abd732c777a982776a6dc\transformed\sqlite-2.3.0\jars\classes.jar"
+      resolved="androidx.sqlite:sqlite:2.3.0"
+      folder="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\e213a591515abd732c777a982776a6dc\transformed\sqlite-2.3.0"
       manifest="AndroidManifest.xml"
       resFolder="res"
       assetsFolder="assets"
@@ -1152,6 +1243,10 @@
       name="androidx.concurrent:concurrent-futures:1.1.0@jar"
       jars="C:\Users\Yass\.gradle\caches\modules-2\files-2.1\androidx.concurrent\concurrent-futures\1.1.0\50b7fb98350d5f42a4e49704b03278542293ba48\concurrent-futures-1.1.0.jar"
       resolved="androidx.concurrent:concurrent-futures:1.1.0"/>
+  <library
+      name="androidx.room:room-common:2.5.0@jar"
+      jars="C:\Users\Yass\.gradle\caches\modules-2\files-2.1\androidx.room\room-common\2.5.0\829a83fb92f1696a8a32f3beea884dfc87b2693\room-common-2.5.0.jar"
+      resolved="androidx.room:room-common:2.5.0"/>
   <library
       name="com.soywiz.korlibs.krypto:krypto-android:4.0.10@aar"
       jars="C:\Users\Yass\.gradle\caches\9.0-milestone-1\transforms\cd64c559492f0d6ba29d698300e04c08\transformed\krypto-release\jars\classes.jar"

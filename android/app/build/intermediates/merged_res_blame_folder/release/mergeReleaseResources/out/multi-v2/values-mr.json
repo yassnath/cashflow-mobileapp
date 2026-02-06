@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.solvix.tabungan.app-mergeReleaseResources-56:/values-mr/values-mr.xml",
+            "outputFile": "com.solvix.tabungan.app-mergeReleaseResources-63:/values-mr/values-mr.xml",
             "map": [
                 {
                     "source": "C:\\Users\\Yass\\.gradle\\caches\\9.0-milestone-1\\transforms\\a0a42a6e72dba18370eff101632401c7\\transformed\\biometric-1.1.0\\res\\values-mr\\values-mr.xml",

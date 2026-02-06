@@ -6,7 +6,6 @@ data class ThemeIconSet(
   val expense: String,
   val dreams: String,
   val history: String,
-  val saving: String,
   val calculator: String,
   val report: String,
   val profile: String,
@@ -21,7 +20,6 @@ private val ThemeIconMap = mapOf(
     expense = "🧾",
     dreams = "🌟",
     history = "📒",
-    saving = "🏦",
     calculator = "🧮",
     report = "📈",
     profile = "👤",
@@ -34,7 +32,6 @@ private val ThemeIconMap = mapOf(
     expense = "💸",
     dreams = "🔮",
     history = "🗃️",
-    saving = "🧊",
     calculator = "🧩",
     report = "📉",
     profile = "🧑‍💻",
@@ -47,7 +44,6 @@ private val ThemeIconMap = mapOf(
     expense = "🍟",
     dreams = "🎂",
     history = "📒",
-    saving = "🥤",
     calculator = "🍭",
     report = "📊",
     profile = "😊",
@@ -60,7 +56,6 @@ private val ThemeIconMap = mapOf(
     expense = "🌌",
     dreams = "🧑‍🚀",
     history = "🛰️",
-    saving = "💫",
     calculator = "🧭",
     report = "🪂",
     profile = "👽",
@@ -73,7 +68,6 @@ private val ThemeIconMap = mapOf(
     expense = "👹",
     dreams = "🎃",
     history = "📗",
-    saving = "🧪",
     calculator = "🧮",
     report = "📊",
     profile = "😈",
@@ -86,7 +80,6 @@ private val ThemeIconMap = mapOf(
     expense = "⚔️",
     dreams = "🏆",
     history = "📜",
-    saving = "💼",
     calculator = "🧮",
     report = "📈",
     profile = "🦹",
@@ -99,7 +92,6 @@ private val ThemeIconMap = mapOf(
     expense = "🐙",
     dreams = "🐬",
     history = "⚓",
-    saving = "🦀",
     calculator = "🧮",
     report = "📊",
     profile = "🐚",
@@ -112,7 +104,6 @@ private val ThemeIconMap = mapOf(
     expense = "🍃",
     dreams = "🌼",
     history = "🌳",
-    saving = "🥕",
     calculator = "🧮",
     report = "📊",
     profile = "😊",
@@ -125,7 +116,6 @@ private val ThemeIconMap = mapOf(
     expense = "💞",
     dreams = "💝",
     history = "🎀",
-    saving = "💎",
     calculator = "🧮",
     report = "📊",
     profile = "😊",
@@ -138,7 +128,6 @@ private val ThemeIconMap = mapOf(
     expense = "🎨",
     dreams = "🎉",
     history = "🎯",
-    saving = "🧸",
     calculator = "🧮",
     report = "📊",
     profile = "😊",
@@ -159,7 +148,6 @@ fun themePageIcon(theme: ThemeName, page: Page): String {
     Page.Expense -> set.expense
     Page.Dreams -> set.dreams
     Page.History -> set.history
-    Page.Saving -> set.saving
     Page.Calculator -> set.calculator
     Page.Report -> set.report
     Page.Profile -> set.profile

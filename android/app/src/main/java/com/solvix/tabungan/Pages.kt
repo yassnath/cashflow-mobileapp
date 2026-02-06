@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
@@ -77,6 +78,9 @@ fun HeroSummary(
   strings: AppStrings,
 ) {
   val colors = LocalAppColors.current
+  val isDark = isDarkTheme(LocalThemeName.current)
+  val incomeColor = if (isDark) Color(0xFF7BE27A) else Color(0xFF2E7D32)
+  val expenseColor = if (isDark) Color(0xFFFF8A80) else Color(0xFFC62828)
   val options = SummaryRange.values().toList()
   AppCard {
     Row(
@@ -108,8 +112,8 @@ fun HeroSummary(
     }
     Spacer(modifier = Modifier.height(10.dp))
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-      StatRow(icon = "⬆️", label = strings["summary_income"], value = formatRupiah(incomeTotal))
-      StatRow(icon = "⬇️", label = strings["summary_expense"], value = formatRupiah(expenseTotal))
+      StatRow(icon = "⬆️", label = strings["summary_income"], value = formatRupiah(incomeTotal), accentColor = incomeColor)
+      StatRow(icon = "⬇️", label = strings["summary_expense"], value = formatRupiah(expenseTotal), accentColor = expenseColor)
       StatRow(icon = "✨", label = strings["summary_balance"], value = formatRupiah(incomeTotal - expenseTotal))
     }
   }
@@ -208,6 +212,8 @@ fun IncomePage(
   var channel by rememberSaveable { mutableStateOf("") }
   var note by rememberSaveable { mutableStateOf("") }
   var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+  var editingTime by rememberSaveable { mutableStateOf<String?>(null) }
+  var editingCreatedAt by rememberSaveable { mutableStateOf<String?>(null) }
 
   LaunchedEffect(editEntry?.id) {
     val entry = editEntry
@@ -219,6 +225,8 @@ fun IncomePage(
       source = entry.sourceOrMethod
       channel = entry.channelOrBank
       note = entry.note
+      editingTime = extractTime(entry.date)
+      editingCreatedAt = entry.createdAt.ifBlank { null }
       onEditConsumed()
     }
   }
@@ -253,15 +261,19 @@ fun IncomePage(
         GradientButton(
           text = if (editingId == null) strings["save_income"] else strings["update_income"],
           onClick = {
+            val timeFallback = editingTime ?: nowJakartaTime()
+            val normalizedDate = ensureDateHasTime(date, timeFallback)
+            val createdAt = editingCreatedAt ?: nowJakartaText()
             val entry = MoneyEntry(
               id = editingId ?: UUIDString(),
               type = EntryType.Income,
               amount = parseAmount(amount),
-              date = date,
+              date = normalizedDate,
               category = category,
               note = note,
               sourceOrMethod = source,
               channelOrBank = channel,
+              createdAt = createdAt,
             )
             if (editingId == null) {
               onSave(entry)
@@ -275,6 +287,8 @@ fun IncomePage(
             channel = ""
             note = ""
             editingId = null
+            editingTime = null
+            editingCreatedAt = null
           },
         )
       }
@@ -300,6 +314,8 @@ fun ExpensePage(
   var bank by rememberSaveable { mutableStateOf("") }
   var note by rememberSaveable { mutableStateOf("") }
   var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+  var editingTime by rememberSaveable { mutableStateOf<String?>(null) }
+  var editingCreatedAt by rememberSaveable { mutableStateOf<String?>(null) }
 
   LaunchedEffect(editEntry?.id) {
     val entry = editEntry
@@ -311,6 +327,8 @@ fun ExpensePage(
       method = entry.sourceOrMethod
       bank = entry.channelOrBank
       note = entry.note
+      editingTime = extractTime(entry.date)
+      editingCreatedAt = entry.createdAt.ifBlank { null }
       onEditConsumed()
     }
   }
@@ -345,15 +363,19 @@ fun ExpensePage(
         GradientButton(
           text = if (editingId == null) strings["save_expense"] else strings["update_expense"],
           onClick = {
+            val timeFallback = editingTime ?: nowJakartaTime()
+            val normalizedDate = ensureDateHasTime(date, timeFallback)
+            val createdAt = editingCreatedAt ?: nowJakartaText()
             val entry = MoneyEntry(
               id = editingId ?: UUIDString(),
               type = EntryType.Expense,
               amount = parseAmount(amount),
-              date = date,
+              date = normalizedDate,
               category = category,
               note = note,
               sourceOrMethod = method,
               channelOrBank = bank,
+              createdAt = createdAt,
             )
             if (editingId == null) {
               onSave(entry)
@@ -367,73 +389,20 @@ fun ExpensePage(
             bank = ""
             note = ""
             editingId = null
+            editingTime = null
+            editingCreatedAt = null
           },
         )
       }
     }
-  }
-}
-
-@Composable
-fun SavingPage(
-  entries: List<SavingEntry>,
-  onSave: (SavingEntry) -> Unit,
-  onUpdate: (SavingEntry) -> Unit,
-  onDelete: (SavingEntry) -> Unit,
-  strings: AppStrings,
-) {
-  var amount by rememberSaveable { mutableStateOf("") }
-  var date by rememberSaveable { mutableStateOf("") }
-  var goal by rememberSaveable { mutableStateOf("") }
-  var note by rememberSaveable { mutableStateOf("") }
-  var editingId by rememberSaveable { mutableStateOf<String?>(null) }
-
-  Column {
-    SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Saving), title = strings["section_saving_title"], subtitle = strings["section_saving_subtitle"])
-    AppCard {
-      Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AppTextField(strings["label_amount"], value = amount, onValueChange = { amount = it }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-        DateField(strings["label_date"], value = date, onValueChange = { date = it }, placeholder = strings["placeholder_date"])
-        AppTextField(strings["label_goal"], value = goal, onValueChange = { goal = it }, placeholder = strings["placeholder_goal"])
-        AppTextField(strings["label_note"], value = note, onValueChange = { note = it }, placeholder = strings["placeholder_note"], minLines = 2)
-        GradientButton(
-          text = if (editingId == null) strings["save_saving"] else strings["update_saving"],
-          onClick = {
-            val entry = SavingEntry(
-              id = editingId ?: UUIDString(),
-              amount = parseAmount(amount),
-              date = date,
-              goal = goal,
-              note = note,
-            )
-            if (editingId == null) onSave(entry) else onUpdate(entry)
-            amount = ""
-            date = ""
-            goal = ""
-            note = ""
-            editingId = null
-          },
-        )
-      }
-    }
-
-    SavingList(
-      entries = entries,
-      onEdit = { entry ->
-        editingId = entry.id
-        amount = entry.amount.toString()
-        date = entry.date
-        goal = entry.goal
-        note = entry.note
-      },
-      onDelete = onDelete,
-    )
   }
 }
 
 @Composable
 fun DreamsPage(
   entries: List<DreamEntry>,
+  incomeTotal: Int,
+  onInvalid: () -> Unit,
   onSave: (DreamEntry) -> Unit,
   onUpdate: (DreamEntry) -> Unit,
   onDelete: (DreamEntry) -> Unit,
@@ -441,10 +410,17 @@ fun DreamsPage(
 ) {
   var title by rememberSaveable { mutableStateOf("") }
   var target by rememberSaveable { mutableStateOf("") }
-  var current by rememberSaveable { mutableStateOf("") }
   var deadline by rememberSaveable { mutableStateOf("") }
   var note by rememberSaveable { mutableStateOf("") }
   var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+
+  fun beginEdit(entry: DreamEntry) {
+    editingId = entry.id
+    title = entry.title
+    target = entry.target.toString()
+    deadline = entry.deadline
+    note = entry.note
+  }
 
   Column {
     SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Dreams), title = strings["section_dreams_title"], subtitle = strings["section_dreams_subtitle"])
@@ -452,29 +428,47 @@ fun DreamsPage(
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppTextField(strings["label_target_name"], value = title, onValueChange = { title = it }, placeholder = strings["placeholder_target"])
         AppTextField(strings["label_target_amount"], value = target, onValueChange = { target = it }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-        AppTextField(strings["label_target_current"], value = current, onValueChange = { current = it }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
         DateField(strings["label_deadline"], value = deadline, onValueChange = { deadline = it }, placeholder = strings["placeholder_date"])
         AppTextField(strings["label_note"], value = note, onValueChange = { note = it }, placeholder = strings["placeholder_strategy"], minLines = 2)
         GradientButton(
           text = if (editingId == null) strings["save_dream"] else strings["update_dream"],
           onClick = {
+            val trimmedTitle = title.trim()
+            val targetAmount = parseAmount(target)
+            if (trimmedTitle.isBlank() || targetAmount <= 0 || deadline.isBlank()) {
+              onInvalid()
+              return@GradientButton
+            }
             val entry = DreamEntry(
               id = editingId ?: UUIDString(),
-              title = title,
-              target = parseAmount(target),
-              current = parseAmount(current),
+              title = trimmedTitle,
+              target = targetAmount,
+              current = 0,
               deadline = deadline,
               note = note,
             )
             if (editingId == null) onSave(entry) else onUpdate(entry)
             title = ""
             target = ""
-            current = ""
             deadline = ""
             note = ""
             editingId = null
           },
         )
+      }
+    }
+    val visibleEntries = entries.filter { it.target > 0 }
+    if (visibleEntries.isNotEmpty()) {
+      Spacer(modifier = Modifier.height(12.dp))
+      Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        visibleEntries.forEach { entry ->
+          GoalProgressCard(
+            entry = entry,
+            progressAmount = incomeTotal.coerceAtMost(entry.target),
+            onEdit = { beginEdit(entry) },
+            onDelete = { onDelete(entry) },
+          )
+        }
       }
     }
   }
@@ -930,6 +924,9 @@ fun HistoryPage(
   onDelete: (MoneyEntry) -> Unit,
 ) {
   val colors = LocalAppColors.current
+  val isDark = isDarkTheme(LocalThemeName.current)
+  val incomeColor = if (isDark) Color(0xFF7BE27A) else Color(0xFF2E7D32)
+  val expenseColor = if (isDark) Color(0xFFFF8A80) else Color(0xFFC62828)
   val defaultRange = remember {
     val now = Calendar.getInstance()
     val formatter = SimpleDateFormat("dd-MM-yyyy", Locale.US)
@@ -951,7 +948,11 @@ fun HistoryPage(
     val beforeTo = to == null || date <= to
     afterFrom && beforeTo
   }
-  val sorted = filtered.sortedByDescending { entry -> parseDate(entry.date) ?: 0L }
+  val sorted = filtered.sortedByDescending { entry ->
+    parseDateTimeMillis(entry.date)
+      ?: parseCreatedAtMillis(entry.createdAt)
+      ?: (parseDate(entry.date) ?: 0L)
+  }
   val incomeTotal = filtered.filter { it.type == EntryType.Income }.sumOf { it.amount }
   val expenseTotal = filtered.filter { it.type == EntryType.Expense }.sumOf { it.amount }
 
@@ -976,8 +977,8 @@ fun HistoryPage(
       Text(text = strings["summary_period"], fontWeight = FontWeight.Bold, fontSize = 14.sp)
       Spacer(modifier = Modifier.height(10.dp))
       Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        StatRow(icon = "⬆️", label = strings["summary_income"], value = formatRupiah(incomeTotal))
-        StatRow(icon = "⬇️", label = strings["summary_expense"], value = formatRupiah(expenseTotal))
+        StatRow(icon = "⬆️", label = strings["summary_income"], value = formatRupiah(incomeTotal), accentColor = incomeColor)
+        StatRow(icon = "⬇️", label = strings["summary_expense"], value = formatRupiah(expenseTotal), accentColor = expenseColor)
         StatRow(icon = "✨", label = strings["summary_balance"], value = formatRupiah(incomeTotal - expenseTotal))
       }
     }
@@ -1269,13 +1270,15 @@ private fun EntryCard(
   val sourceLabel = if (entry.type == EntryType.Income) strings["label_source"] else strings["label_method"]
   val bankLabel = if (entry.type == EntryType.Income) strings["label_channel"] else strings["label_bank"]
   val noteText = entry.note.ifBlank { "-" }
+  val fallbackTime = formatTimeFromCreatedAt(entry.createdAt) ?: "00:00"
+  val dateText = ensureDateHasTime(entry.date, fallbackTime)
   AppCard(shape = RoundedCornerShape(AppDimens.radiusMd)) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
       Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
         Text(text = typeLabel, fontWeight = FontWeight.Bold, color = colors.text)
         Text(text = amountText, fontWeight = FontWeight.Bold, color = amountColor)
       }
-      Text(text = entry.date, color = colors.muted, fontSize = 12.sp)
+      Text(text = dateText, color = colors.muted, fontSize = 12.sp)
       Text(text = "${strings["label_category"]}: ${entry.category}", color = colors.muted, fontSize = 12.sp)
       Text(text = "$sourceLabel: $sourceText", color = colors.muted, fontSize = 12.sp)
       Text(text = "$bankLabel: $bankText", color = colors.muted, fontSize = 12.sp)
@@ -1320,6 +1323,7 @@ private data class DonutSlice(
   val label: String,
   val value: Int,
   val color: Color,
+  val brush: Brush? = null,
 )
 
 private fun buildMonthlySeries(income: List<MoneyEntry>, expense: List<MoneyEntry>, language: AppLanguage): ChartSeries {
@@ -1526,14 +1530,16 @@ private fun DonutChart(
   strokeWidth: Dp = 18.dp,
   centerLabel: String? = null,
   centerSubLabel: String? = null,
+  trackColor: Color = Color.Unspecified,
 ) {
   val colors = LocalAppColors.current
   val total = slices.sumOf { it.value }
+  val ringColor = if (trackColor == Color.Unspecified) colors.bg2 else trackColor
   Box(modifier = modifier, contentAlignment = Alignment.Center) {
     Canvas(modifier = Modifier.fillMaxSize()) {
       val stroke = Stroke(width = strokeWidth.toPx(), cap = StrokeCap.Round)
       drawArc(
-        color = colors.bg2,
+        color = ringColor,
         startAngle = 0f,
         sweepAngle = 360f,
         useCenter = false,
@@ -1545,13 +1551,23 @@ private fun DonutChart(
         slices.forEach { slice ->
           val sweep = (slice.value.toFloat() / total) * 360f
           val adjustedSweep = (sweep - gap).coerceAtLeast(0f)
-          drawArc(
-            color = slice.color,
-            startAngle = startAngle,
-            sweepAngle = adjustedSweep,
-            useCenter = false,
-            style = stroke,
-          )
+          if (slice.brush != null) {
+            drawArc(
+              brush = slice.brush,
+              startAngle = startAngle,
+              sweepAngle = adjustedSweep,
+              useCenter = false,
+              style = stroke,
+            )
+          } else {
+            drawArc(
+              color = slice.color,
+              startAngle = startAngle,
+              sweepAngle = adjustedSweep,
+              useCenter = false,
+              style = stroke,
+            )
+          }
           startAngle += sweep
         }
       }
@@ -1593,30 +1609,88 @@ private fun DonutLegend(slices: List<DonutSlice>) {
 }
 
 @Composable
-private fun SavingList(
-  entries: List<SavingEntry>,
-  onEdit: (SavingEntry) -> Unit,
-  onDelete: (SavingEntry) -> Unit,
+private fun GoalProgressCard(
+  entry: DreamEntry,
+  progressAmount: Int,
+  onEdit: () -> Unit,
+  onDelete: () -> Unit,
 ) {
+  val colors = LocalAppColors.current
   val strings = LocalStrings.current
-  if (entries.isEmpty()) return
-  Spacer(modifier = Modifier.height(12.dp))
-  Text(text = strings["list_saving"], fontWeight = FontWeight.Bold, fontSize = 14.sp)
-  Spacer(modifier = Modifier.height(8.dp))
-  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-    entries.forEach { entry ->
-      AppCard(shape = RoundedCornerShape(AppDimens.radiusMd)) {
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-          Text(text = entry.goal, fontWeight = FontWeight.Bold)
-          Text(text = formatRupiah(entry.amount), fontWeight = FontWeight.Bold)
+  val clampedProgress = progressAmount.coerceIn(0, entry.target.coerceAtLeast(0))
+  val hasProgress = clampedProgress > 0
+  val track = colors.muted.copy(alpha = if (isDarkTheme(LocalThemeName.current)) 0.25f else 0.2f)
+  val valueColor = if (hasProgress) colors.accent2 else colors.muted
+  val percentValue = if (entry.target > 0) {
+    ((clampedProgress.toFloat() / entry.target) * 100f).coerceIn(0f, 100f)
+  } else {
+    0f
+  }
+  val percentText = "${percentValue.roundToInt()}%"
+  val remainder = (entry.target - clampedProgress).coerceAtLeast(0)
+  val progressBrush = Brush.sweepGradient(
+    listOf(colors.accent, colors.accent2, colors.accent),
+  )
+  val slices = listOf(
+    DonutSlice(label = entry.title, value = clampedProgress, color = colors.accent, brush = progressBrush),
+    DonutSlice(label = "remaining", value = remainder, color = track),
+  )
+  val noteText = if (entry.note.isBlank()) "-" else entry.note
+
+  AppCard(shape = RoundedCornerShape(AppDimens.radiusMd)) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+      Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        DonutChart(
+          slices = slices,
+          modifier = Modifier.size(88.dp),
+          strokeWidth = 14.dp,
+          centerLabel = percentText,
+          centerSubLabel = null,
+          trackColor = Color.Transparent,
+        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+          Text(text = entry.title, fontWeight = FontWeight.Bold, color = colors.text)
+          Text(
+            text = "${formatRupiah(clampedProgress)} / ${formatRupiah(entry.target)}",
+            fontWeight = FontWeight.SemiBold,
+            color = valueColor,
+            fontSize = 12.sp,
+          )
+          Text(text = percentText, color = colors.muted, fontSize = 11.sp)
+          if (entry.deadline.isNotBlank()) {
+            Text(text = "${strings["label_deadline"]}: ${entry.deadline}", color = colors.muted, fontSize = 11.sp)
+          }
+          Text(
+            text = "${strings["note_label"]}: $noteText",
+            color = colors.muted,
+            fontSize = 11.sp,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+          )
         }
-        Text(text = entry.date, color = LocalAppColors.current.muted, fontSize = 12.sp)
-        if (entry.note.isNotBlank()) {
-          Text(text = entry.note, color = LocalAppColors.current.muted, fontSize = 12.sp)
+      }
+      Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Box(
+          modifier = Modifier
+            .weight(1f)
+            .heightIn(min = 40.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Brush.linearGradient(listOf(colors.accent, colors.accent2)))
+            .clickable { onEdit() },
+          contentAlignment = Alignment.Center,
+        ) {
+          Text(text = strings["edit"], color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-          GhostButton(text = strings["edit"], fillMaxWidth = false, modifier = Modifier.weight(1f), onClick = { onEdit(entry) })
-          GhostButton(text = strings["delete"], fillMaxWidth = false, modifier = Modifier.weight(1f), onClick = { onDelete(entry) })
+        Box(
+          modifier = Modifier
+            .weight(1f)
+            .heightIn(min = 40.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFFD32F2F))
+            .clickable { onDelete() },
+          contentAlignment = Alignment.Center,
+        ) {
+          Text(text = strings["delete"], color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
         }
       }
     }

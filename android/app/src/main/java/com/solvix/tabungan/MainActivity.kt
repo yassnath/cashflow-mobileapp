@@ -3,6 +3,7 @@ package com.solvix.tabungan
 import android.os.Bundle
 import android.content.Context
 import android.app.KeyguardManager
+import android.content.pm.PackageManager
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -73,6 +74,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.core.content.ContextCompat
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -84,8 +90,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
 import kotlin.math.roundToInt
 import kotlinx.serialization.json.put
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.util.concurrent.TimeUnit
 
 class MainActivity : FragmentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,7 +110,6 @@ enum class Page(val label: String, val icon: String) {
   Expense("Pengeluaran", "🧾"),
   Dreams("Target", "🌟"),
   History("History", "📒"),
-  Saving("Tabungan", "🏦"),
   Calculator("Kalkulator", "🧮"),
   Report("Laporan", "📈"),
   Profile("Profile", "👤"),
@@ -111,6 +119,8 @@ enum class Page(val label: String, val icon: String) {
 
 private enum class AuthTab { SignIn, SignUp }
 private enum class LoadingTarget { Startup, Logout }
+
+private const val GOAL_DEADLINE_WORK = "goal_deadline_worker"
 
 @Composable
 fun TabunganApp() {
@@ -178,7 +188,7 @@ fun TabunganApp() {
   var hasRegistered by rememberSaveable { mutableStateOf(prefs.getBoolean("has_registered", false)) }
   var savedUsername by rememberSaveable { mutableStateOf(prefs.getString("saved_username", "") ?: "") }
   var savedPassword by rememberSaveable { mutableStateOf(prefs.getString("saved_password", "") ?: "") }
-  var fingerprintPrompted by rememberSaveable { mutableStateOf(false) }
+  var biometricPrompted by rememberSaveable { mutableStateOf(false) }
   val biometricManager = remember { BiometricManager.from(context) }
   val keyguardManager = remember {
     context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
@@ -187,7 +197,6 @@ fun TabunganApp() {
 
   val incomeEntries = remember { mutableStateListOf<MoneyEntry>() }
   val expenseEntries = remember { mutableStateListOf<MoneyEntry>() }
-  val savingEntries = remember { mutableStateListOf<SavingEntry>() }
   val dreamEntries = remember { mutableStateListOf<DreamEntry>() }
 
   var signInUsername by rememberSaveable { mutableStateOf("") }
@@ -199,6 +208,8 @@ fun TabunganApp() {
   var signUpBio by rememberSaveable { mutableStateOf("") }
   var signUpUsername by rememberSaveable { mutableStateOf("") }
   var signUpPassword by rememberSaveable { mutableStateOf("") }
+  val achievedGoalIds = remember { mutableStateListOf<String>() }
+  var lastIncomeTotal by rememberSaveable { mutableStateOf(0) }
 
   val strings = stringsFor(currentLang)
   fun resolveStartYear(): Int {
@@ -304,12 +315,78 @@ fun TabunganApp() {
       .apply()
   }
 
+  fun updateGoalMilestones(notify: Boolean = true) {
+    val totalIncome = incomeEntries.sumOf { it.amount }
+    val previousTotal = lastIncomeTotal
+    lastIncomeTotal = totalIncome
+    achievedGoalIds.removeAll { id -> dreamEntries.none { it.id == id } }
+    val newlyReached = mutableListOf<String>()
+    dreamEntries.forEach { goal ->
+      val reached = goal.target > 0 && totalIncome >= goal.target
+      val hasReached = achievedGoalIds.contains(goal.id)
+      val justReached = previousTotal < goal.target && totalIncome == goal.target
+      if (reached && !hasReached) {
+        achievedGoalIds.add(goal.id)
+        if (notify && justReached) {
+          newlyReached.add(goal.title)
+        }
+      }
+      if (!reached && hasReached) {
+        achievedGoalIds.remove(goal.id)
+      }
+    }
+    if (notify && newlyReached.isNotEmpty()) {
+      toastMessage = if (newlyReached.size == 1) {
+        strings["goal_reached_single"].replace("{title}", newlyReached.first())
+      } else {
+        strings["goal_reached_multi"].replace("{count}", newlyReached.size.toString())
+      }
+      toastVisible = true
+    }
+  }
+
+  fun scheduleGoalDeadlineWorker() {
+    val zone = ZoneId.of("Asia/Jakarta")
+    val now = ZonedDateTime.now(zone)
+    val nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay(zone)
+    val initialDelay = Duration.between(now, nextMidnight).toMillis().coerceAtLeast(0)
+    val constraints = Constraints.Builder()
+      .setRequiredNetworkType(NetworkType.CONNECTED)
+      .build()
+    val request = PeriodicWorkRequestBuilder<GoalDeadlineWorker>(24, TimeUnit.HOURS)
+      .setConstraints(constraints)
+      .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
+      .build()
+    WorkManager.getInstance(context)
+      .enqueueUniquePeriodicWork(
+        GOAL_DEADLINE_WORK,
+        ExistingPeriodicWorkPolicy.UPDATE,
+        request,
+      )
+  }
+
+  fun cancelGoalDeadlineWorker() {
+    WorkManager.getInstance(context).cancelUniqueWork(GOAL_DEADLINE_WORK)
+  }
+
   suspend fun fetchAllUsers(): List<SupabaseUser> {
     val users = SupabaseClient.client
       .from("users")
       .select()
       .decodeList<SupabaseUser>()
     return users.sortedByDescending { parseCreatedAtMillis(it.createdAt) ?: 0L }
+  }
+
+  suspend fun updateMoneyEntryDate(entryId: String, date: String) {
+    SupabaseClient.client
+      .from("money_entries")
+      .update(
+        buildJsonObject {
+          put("date", date)
+        },
+      ) {
+        filter { eq("id", entryId) }
+      }
   }
 
   suspend fun loadUserData(userId: String) {
@@ -320,44 +397,49 @@ fun TabunganApp() {
       }
       .decodeList<SupabaseMoneyEntry>()
 
+    val pendingDateUpdates = mutableListOf<Pair<String, String>>()
     val income = moneyRows.filter { it.type == EntryType.Income.name }.map { row ->
+      val fallbackTime = formatTimeFromCreatedAt(row.createdAt)
+      val normalizedDate = if (fallbackTime != null) {
+        ensureDateHasTime(row.date, fallbackTime)
+      } else {
+        row.date
+      }
+      if (normalizedDate != row.date && formatTimeFromCreatedAt(row.createdAt) != null) {
+        pendingDateUpdates.add(row.id to normalizedDate)
+      }
       MoneyEntry(
         id = row.id,
         type = EntryType.Income,
         amount = row.amount,
-        date = row.date,
+        date = normalizedDate,
         category = row.category,
         note = row.note,
         sourceOrMethod = row.sourceOrMethod,
         channelOrBank = row.channelOrBank,
+        createdAt = row.createdAt,
       )
     }
     val expense = moneyRows.filter { it.type == EntryType.Expense.name }.map { row ->
+      val fallbackTime = formatTimeFromCreatedAt(row.createdAt)
+      val normalizedDate = if (fallbackTime != null) {
+        ensureDateHasTime(row.date, fallbackTime)
+      } else {
+        row.date
+      }
+      if (normalizedDate != row.date && formatTimeFromCreatedAt(row.createdAt) != null) {
+        pendingDateUpdates.add(row.id to normalizedDate)
+      }
       MoneyEntry(
         id = row.id,
         type = EntryType.Expense,
         amount = row.amount,
-        date = row.date,
+        date = normalizedDate,
         category = row.category,
         note = row.note,
         sourceOrMethod = row.sourceOrMethod,
         channelOrBank = row.channelOrBank,
-      )
-    }
-
-    val savingRows = SupabaseClient.client
-      .from("saving_entries")
-      .select {
-        filter { eq("user_id", userId) }
-      }
-      .decodeList<SupabaseSavingEntry>()
-    val saving = savingRows.map { row ->
-      SavingEntry(
-        id = row.id,
-        amount = row.amount,
-        date = row.date,
-        goal = row.goal,
-        note = row.note,
+        createdAt = row.createdAt,
       )
     }
 
@@ -378,15 +460,24 @@ fun TabunganApp() {
       )
     }
 
+    if (pendingDateUpdates.isNotEmpty()) {
+      pendingDateUpdates.distinctBy { it.first }.forEach { (entryId, dateText) ->
+        try {
+          updateMoneyEntryDate(entryId, dateText)
+        } catch (_: Exception) {
+          // Ignore failed backfill updates.
+        }
+      }
+    }
+
     withContext(Dispatchers.Main) {
       incomeEntries.clear()
       incomeEntries.addAll(income)
       expenseEntries.clear()
       expenseEntries.addAll(expense)
-      savingEntries.clear()
-      savingEntries.addAll(saving)
       dreamEntries.clear()
       dreamEntries.addAll(dreams)
+      updateGoalMilestones(notify = false)
     }
   }
 
@@ -394,9 +485,11 @@ fun TabunganApp() {
     currentUser = null
     isLoggedIn = false
     pendingEdit = null
+    achievedGoalIds.clear()
+    lastIncomeTotal = 0
+    cancelGoalDeadlineWorker()
     incomeEntries.clear()
     expenseEntries.clear()
-    savingEntries.clear()
     dreamEntries.clear()
   }
 
@@ -448,6 +541,7 @@ fun TabunganApp() {
             biometricAllowed = true
             prefs.edit().putBoolean("biometric_allowed", true).apply()
             persistCredentials(matchedUser.username, matchedUser.password)
+            scheduleGoalDeadlineWorker()
             toastMessage = strings["login_success"]
             toastVisible = true
             scope.launch(Dispatchers.IO) {
@@ -474,6 +568,9 @@ fun TabunganApp() {
           put("type", entry.type.name)
           put("amount", entry.amount)
           put("date", entry.date)
+          if (entry.createdAt.isNotBlank()) {
+            put("created_at", entry.createdAt)
+          }
           put("category", entry.category)
           put("note", entry.note)
           put("source_method", entry.sourceOrMethod)
@@ -502,44 +599,6 @@ fun TabunganApp() {
   suspend fun deleteMoneyEntry(entryId: String) {
     SupabaseClient.client
       .from("money_entries")
-      .delete {
-        filter { eq("id", entryId) }
-      }
-  }
-
-  suspend fun insertSavingEntry(userId: String, entry: SavingEntry) {
-    SupabaseClient.client
-      .from("saving_entries")
-      .insert(
-        buildJsonObject {
-          put("id", entry.id)
-          put("user_id", userId)
-          put("amount", entry.amount)
-          put("date", entry.date)
-          put("goal", entry.goal)
-          put("note", entry.note)
-        },
-      )
-  }
-
-  suspend fun updateSavingEntry(entry: SavingEntry) {
-    SupabaseClient.client
-      .from("saving_entries")
-      .update(
-        buildJsonObject {
-          put("amount", entry.amount)
-          put("date", entry.date)
-          put("goal", entry.goal)
-          put("note", entry.note)
-        },
-      ) {
-        filter { eq("id", entry.id) }
-      }
-  }
-
-  suspend fun deleteSavingEntry(entryId: String) {
-    SupabaseClient.client
-      .from("saving_entries")
       .delete {
         filter { eq("id", entryId) }
       }
@@ -598,7 +657,9 @@ fun TabunganApp() {
     return biometricOk && keyguardManager.isDeviceSecure
   }
 
-  fun canUseBiometric(): Boolean {
+  fun canUseFace(): Boolean {
+    val hasFace = context.packageManager.hasSystemFeature(PackageManager.FEATURE_FACE)
+    if (!hasFace) return false
     val strong = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
     val weak = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
     val biometricOk = strong == BiometricManager.BIOMETRIC_SUCCESS || weak == BiometricManager.BIOMETRIC_SUCCESS
@@ -617,7 +678,7 @@ fun TabunganApp() {
       showAlert = true
       return
     }
-    val usable = if (requireFingerprint) canUseFingerprint() else canUseBiometric()
+    val usable = if (requireFingerprint) canUseFingerprint() else canUseFace()
     if (!usable) {
       alertMessage = if (requireFingerprint) strings["fingerprint_required"] else strings["face_required"]
       showAlert = true
@@ -687,14 +748,14 @@ fun TabunganApp() {
       }
       LaunchedEffect(showAuth, authTab) {
         if (showAuth && authTab == AuthTab.SignIn) {
-          fingerprintPrompted = false
+          biometricPrompted = false
         }
       }
       LaunchedEffect(showAuth, authTab, fingerprintEnabled, hasRegistered, biometricAllowed) {
         if (!showAuth || authTab != AuthTab.SignIn) return@LaunchedEffect
-        if (!fingerprintEnabled || !hasRegistered || !biometricAllowed || fingerprintPrompted) return@LaunchedEffect
-        if (!canUseFingerprint()) return@LaunchedEffect
-        fingerprintPrompted = true
+        if (!hasRegistered || !biometricAllowed || biometricPrompted) return@LaunchedEffect
+        if (!fingerprintEnabled || !canUseFingerprint()) return@LaunchedEffect
+        biometricPrompted = true
         launchFingerprintAuth {
           if (savedUsername.isBlank() || savedPassword.isBlank()) {
             alertMessage = strings["signin_missing"]
@@ -858,6 +919,7 @@ fun TabunganApp() {
                         entries = incomeEntries,
                         onSave = { entry ->
                           incomeEntries.add(entry)
+                          updateGoalMilestones()
                           if (activeUserId.isNotBlank()) {
                             scope.launch(Dispatchers.IO) { insertMoneyEntry(activeUserId, entry) }
                           }
@@ -867,13 +929,17 @@ fun TabunganApp() {
                         onUpdate = { entry ->
                           val index = incomeEntries.indexOfFirst { it.id == entry.id }
                           if (index >= 0) incomeEntries[index] = entry
+                          updateGoalMilestones()
                           if (activeUserId.isNotBlank()) {
                             scope.launch(Dispatchers.IO) { updateMoneyEntry(entry) }
                           }
+                          toastMessage = strings["income_updated"]
+                          toastVisible = true
                         },
                         onDelete = { entry ->
                           requestConfirm(strings["confirm_delete_income"]) {
                             incomeEntries.removeAll { it.id == entry.id }
+                            updateGoalMilestones()
                             if (activeUserId.isNotBlank()) {
                               scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
                             }
@@ -899,6 +965,8 @@ fun TabunganApp() {
                           if (activeUserId.isNotBlank()) {
                             scope.launch(Dispatchers.IO) { updateMoneyEntry(entry) }
                           }
+                          toastMessage = strings["expense_updated"]
+                          toastVisible = true
                         },
                         onDelete = { entry ->
                           requestConfirm(strings["confirm_delete_expense"]) {
@@ -914,8 +982,14 @@ fun TabunganApp() {
                       )
                       Page.Dreams -> DreamsPage(
                         entries = dreamEntries,
+                        incomeTotal = incomeEntries.sumOf { it.amount },
+                        onInvalid = {
+                          alertMessage = strings["goal_missing"]
+                          showAlert = true
+                        },
                         onSave = { entry ->
                           dreamEntries.add(entry)
+                          updateGoalMilestones()
                           if (activeUserId.isNotBlank()) {
                             scope.launch(Dispatchers.IO) { insertDreamEntry(activeUserId, entry) }
                           }
@@ -925,13 +999,17 @@ fun TabunganApp() {
                         onUpdate = { entry ->
                           val index = dreamEntries.indexOfFirst { it.id == entry.id }
                           if (index >= 0) dreamEntries[index] = entry
+                          updateGoalMilestones()
                           if (activeUserId.isNotBlank()) {
                             scope.launch(Dispatchers.IO) { updateDreamEntry(entry) }
                           }
+                          toastMessage = strings["dream_updated"]
+                          toastVisible = true
                         },
                         onDelete = { entry ->
                           requestConfirm(strings["confirm_delete_dream"]) {
                             dreamEntries.removeAll { it.id == entry.id }
+                            updateGoalMilestones()
                             if (activeUserId.isNotBlank()) {
                               scope.launch(Dispatchers.IO) { deleteDreamEntry(entry.id) }
                             }
@@ -950,7 +1028,10 @@ fun TabunganApp() {
                           val confirmKey = if (entry.type == EntryType.Income) "confirm_delete_income" else "confirm_delete_expense"
                           requestConfirm(strings[confirmKey]) {
                             when (entry.type) {
-                              EntryType.Income -> incomeEntries.removeAll { it.id == entry.id }
+                              EntryType.Income -> {
+                                incomeEntries.removeAll { it.id == entry.id }
+                                updateGoalMilestones()
+                              }
                               EntryType.Expense -> expenseEntries.removeAll { it.id == entry.id }
                             }
                             if (activeUserId.isNotBlank()) {
@@ -958,31 +1039,6 @@ fun TabunganApp() {
                             }
                           }
                         },
-                      )
-                      Page.Saving -> SavingPage(
-                        entries = savingEntries,
-                        onSave = { entry ->
-                          savingEntries.add(entry)
-                          if (activeUserId.isNotBlank()) {
-                            scope.launch(Dispatchers.IO) { insertSavingEntry(activeUserId, entry) }
-                          }
-                        },
-                        onUpdate = { entry ->
-                          val index = savingEntries.indexOfFirst { it.id == entry.id }
-                          if (index >= 0) savingEntries[index] = entry
-                          if (activeUserId.isNotBlank()) {
-                            scope.launch(Dispatchers.IO) { updateSavingEntry(entry) }
-                          }
-                        },
-                        onDelete = { entry ->
-                          requestConfirm(strings["confirm_delete_saving"]) {
-                            savingEntries.removeAll { it.id == entry.id }
-                            if (activeUserId.isNotBlank()) {
-                              scope.launch(Dispatchers.IO) { deleteSavingEntry(entry.id) }
-                            }
-                          }
-                        },
-                        strings = strings,
                       )
                       Page.Calculator -> CalculatorPage()
                       Page.Report -> ReportPage(
@@ -1062,7 +1118,7 @@ fun TabunganApp() {
                         faceUnlockEnabled = faceUnlockEnabled,
                         onFaceUnlockToggle = { enabled ->
                           if (enabled) {
-                            if (canUseBiometric()) {
+                            if (canUseFace()) {
                               faceUnlockEnabled = true
                               prefs.edit().putBoolean("face_unlock_enabled", true).apply()
                               alertMessage = strings["face_enabled"]
@@ -1217,7 +1273,7 @@ fun TabunganApp() {
                         }
                       }
                     }
-                    if (faceUnlockEnabled && hasRegistered && biometricAllowed) {
+                    if (faceUnlockEnabled && hasRegistered && biometricAllowed && canUseFace()) {
                       GhostButton(text = strings["auth_face"]) {
                         launchFaceAuth {
                           if (savedUsername.isBlank() || savedPassword.isBlank()) {
@@ -1366,9 +1422,7 @@ fun TabunganApp() {
 
 private fun Page.showHero(): Boolean {
   return this == Page.Income ||
-    this == Page.Expense ||
-    this == Page.Saving ||
-    this == Page.Dreams
+    this == Page.Expense
 }
 
 private fun clearAuthFields(
@@ -1686,7 +1740,6 @@ private fun pageLabel(page: Page, strings: AppStrings): String {
     Page.Expense -> strings["page_expense"]
     Page.Dreams -> strings["page_dreams"]
     Page.History -> strings["page_history"]
-    Page.Saving -> strings["page_saving"]
     Page.Calculator -> strings["page_calculator"]
     Page.Report -> strings["page_report"]
     Page.Profile -> strings["page_profile"]

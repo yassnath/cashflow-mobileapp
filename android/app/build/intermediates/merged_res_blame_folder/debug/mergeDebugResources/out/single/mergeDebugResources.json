@@ -1,22 +1,22 @@
 [
     {
-        "merged": "com.solvix.tabungan.app-debug-62:/font_fredoka_bold.ttf.flat",
-        "source": "com.solvix.tabungan.app-main-64:/font/fredoka_bold.ttf"
+        "merged": "com.solvix.tabungan.app-debug-69:/drawable_logo2.png.flat",
+        "source": "com.solvix.tabungan.app-main-71:/drawable/logo2.png"
     },
     {
-        "merged": "com.solvix.tabungan.app-debug-62:/drawable_logo2.png.flat",
-        "source": "com.solvix.tabungan.app-main-64:/drawable/logo2.png"
+        "merged": "com.solvix.tabungan.app-debug-69:/font_fredoka_bold.ttf.flat",
+        "source": "com.solvix.tabungan.app-main-71:/font/fredoka_bold.ttf"
     },
     {
-        "merged": "com.solvix.tabungan.app-debug-62:/font_fredoka_regular.ttf.flat",
-        "source": "com.solvix.tabungan.app-main-64:/font/fredoka_regular.ttf"
+        "merged": "com.solvix.tabungan.app-debug-69:/font_fredoka_semibold.ttf.flat",
+        "source": "com.solvix.tabungan.app-main-71:/font/fredoka_semibold.ttf"
     },
     {
-        "merged": "com.solvix.tabungan.app-debug-62:/font_fredoka_semibold.ttf.flat",
-        "source": "com.solvix.tabungan.app-main-64:/font/fredoka_semibold.ttf"
+        "merged": "com.solvix.tabungan.app-debug-69:/font_fredoka_regular.ttf.flat",
+        "source": "com.solvix.tabungan.app-main-71:/font/fredoka_regular.ttf"
     },
     {
-        "merged": "com.solvix.tabungan.app-debug-62:/font_fredoka_medium.ttf.flat",
-        "source": "com.solvix.tabungan.app-main-64:/font/fredoka_medium.ttf"
+        "merged": "com.solvix.tabungan.app-debug-69:/font_fredoka_medium.ttf.flat",
+        "source": "com.solvix.tabungan.app-main-71:/font/fredoka_medium.ttf"
     }
 ]

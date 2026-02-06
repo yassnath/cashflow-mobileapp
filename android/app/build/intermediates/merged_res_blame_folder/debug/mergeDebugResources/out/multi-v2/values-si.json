@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.solvix.tabungan.app-mergeDebugResources-60:/values-si/values-si.xml",
+            "outputFile": "com.solvix.tabungan.app-mergeDebugResources-67:/values-si/values-si.xml",
             "map": [
                 {
                     "source": "C:\\Users\\Yass\\.gradle\\caches\\9.0-milestone-1\\transforms\\be2523e7791fbc3fbd067eea3f95f7ec\\transformed\\browser-1.8.0\\res\\values-si\\values-si.xml",

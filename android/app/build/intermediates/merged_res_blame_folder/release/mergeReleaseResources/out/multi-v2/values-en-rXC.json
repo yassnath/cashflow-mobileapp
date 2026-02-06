@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.solvix.tabungan.app-mergeReleaseResources-56:/values-en-rXC/values-en-rXC.xml",
+            "outputFile": "com.solvix.tabungan.app-mergeReleaseResources-63:/values-en-rXC/values-en-rXC.xml",
             "map": [
                 {
                     "source": "C:\\Users\\Yass\\.gradle\\caches\\9.0-milestone-1\\transforms\\304edeb0d6f27c25ce9a771d5815368a\\transformed\\appcompat-1.6.1\\res\\values-en-rXC\\values-en-rXC.xml",

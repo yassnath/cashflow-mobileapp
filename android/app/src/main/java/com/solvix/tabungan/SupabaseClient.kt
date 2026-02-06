@@ -46,23 +46,14 @@ data class SupabaseMoneyEntry(
   val type: String = "",
   val amount: Int = 0,
   val date: String = "",
+  @SerialName("created_at")
+  val createdAt: String = "",
   val category: String = "",
   val note: String = "",
   @SerialName("source_method")
   val sourceOrMethod: String = "",
   @SerialName("channel_bank")
   val channelOrBank: String = "",
-)
-
-@Serializable
-data class SupabaseSavingEntry(
-  val id: String = "",
-  @SerialName("user_id")
-  val userId: String = "",
-  val amount: Int = 0,
-  val date: String = "",
-  val goal: String = "",
-  val note: String = "",
 )
 
 @Serializable

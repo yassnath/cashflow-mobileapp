@@ -11,6 +11,7 @@
   public static j$.time.DayOfWeek[] values();
 }
 -keep class j$.time.Duration {
+  public static j$.time.Duration between(j$.time.temporal.Temporal, j$.time.temporal.Temporal);
   public int compareTo(j$.time.Duration);
   public int getNano();
   public long getSeconds();
@@ -54,6 +55,7 @@
   public int lengthOfMonth();
   public j$.time.LocalDate minusMonths(long);
   public static j$.time.LocalDate now();
+  public static j$.time.LocalDate now(j$.time.ZoneId);
   public static j$.time.LocalDate of(int, int, int);
   public static j$.time.LocalDate ofEpochDay(long);
   public static j$.time.LocalDate parse(java.lang.CharSequence);
@@ -149,6 +151,7 @@
 }
 -keep class j$.time.ZonedDateTime {
   public int getYear();
+  public static j$.time.ZonedDateTime now(j$.time.ZoneId);
   public j$.time.ZonedDateTime plusDays(long);
   public j$.time.ZonedDateTime plusMonths(long);
   public j$.time.ZonedDateTime plusNanos(long);
@@ -190,6 +193,7 @@
   j$.time.format.TextStyle NARROW;
 }
 -keep enum j$.time.temporal.ChronoUnit {
+  public long between(j$.time.temporal.Temporal, j$.time.temporal.Temporal);
   public j$.time.Duration getDuration();
   j$.time.temporal.ChronoUnit DAYS;
   j$.time.temporal.ChronoUnit MILLIS;

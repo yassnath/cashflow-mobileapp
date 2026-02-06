@@ -59,6 +59,7 @@ dependencies {
   implementation("androidx.compose.animation:animation")
   implementation("com.google.android.material:material:1.12.0")
   implementation("androidx.biometric:biometric:1.1.0")
+  implementation("androidx.work:work-runtime-ktx:2.9.0")
   implementation("io.github.jan-tennert.supabase:supabase-kt:2.4.1")
   implementation("io.github.jan-tennert.supabase:postgrest-kt:2.4.1")
   implementation("io.ktor:ktor-client-okhttp:2.3.12")

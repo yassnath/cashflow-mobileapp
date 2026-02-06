@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.solvix.tabungan.app-mergeReleaseResources-56:/values-en-rGB/values-en-rGB.xml",
+            "outputFile": "com.solvix.tabungan.app-mergeReleaseResources-63:/values-en-rGB/values-en-rGB.xml",
             "map": [
                 {
                     "source": "C:\\Users\\Yass\\.gradle\\caches\\9.0-milestone-1\\transforms\\f141389014d0cf94aa37f7fd92d81abb\\transformed\\material3-release\\res\\values-en-rGB\\values-en-rGB.xml",
