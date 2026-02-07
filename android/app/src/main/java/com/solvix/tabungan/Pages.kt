@@ -1110,8 +1110,6 @@ private fun ProfileLine(label: String, value: String) {
 fun SettingsPage(
   fingerprintEnabled: Boolean,
   onFingerprintToggle: (Boolean) -> Unit,
-  faceUnlockEnabled: Boolean,
-  onFaceUnlockToggle: (Boolean) -> Unit,
   language: AppLanguage,
   onLanguageChange: (AppLanguage) -> Unit,
   strings: AppStrings,
@@ -1150,24 +1148,6 @@ fun SettingsPage(
         )
       }
       Spacer(modifier = Modifier.height(10.dp))
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        Column(modifier = Modifier.weight(1f)) {
-          Text(text = strings["settings_face"], fontSize = 12.sp, color = colors.text)
-          Text(
-            text = strings["settings_face_desc"],
-            color = colors.muted,
-            fontSize = 11.sp,
-          )
-        }
-        Switch(
-          checked = faceUnlockEnabled,
-          onCheckedChange = onFaceUnlockToggle,
-        )
-      }
     }
     Spacer(modifier = Modifier.height(12.dp))
     AppCard {

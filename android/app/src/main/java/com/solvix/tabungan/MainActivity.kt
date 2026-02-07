@@ -3,7 +3,6 @@ package com.solvix.tabungan
 import android.os.Bundle
 import android.content.Context
 import android.app.KeyguardManager
-import android.content.pm.PackageManager
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -144,6 +143,9 @@ fun TabunganApp() {
     var pendingEdit by remember { mutableStateOf<MoneyEntry?>(null) }
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("tabungan_prefs", Context.MODE_PRIVATE) }
+    LaunchedEffect(Unit) {
+      prefs.edit().remove("face_unlock_enabled").apply()
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     var fadeSeed by remember { mutableStateOf(0) }
     var pageFadeSeed by remember { mutableStateOf(0) }
@@ -183,7 +185,6 @@ fun TabunganApp() {
     }
   var hasSeenWelcome by remember { mutableStateOf(prefs.getBoolean("has_seen_welcome", false)) }
   var fingerprintEnabled by rememberSaveable { mutableStateOf(prefs.getBoolean("fingerprint_enabled", false)) }
-  var faceUnlockEnabled by rememberSaveable { mutableStateOf(prefs.getBoolean("face_unlock_enabled", false)) }
   var biometricAllowed by rememberSaveable { mutableStateOf(prefs.getBoolean("biometric_allowed", false)) }
   var hasRegistered by rememberSaveable { mutableStateOf(prefs.getBoolean("has_registered", false)) }
   var savedUsername by rememberSaveable { mutableStateOf(prefs.getString("saved_username", "") ?: "") }
@@ -652,22 +653,13 @@ fun TabunganApp() {
 
   fun canUseFingerprint(): Boolean {
     val strong = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-    val weak = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
-    val biometricOk = strong == BiometricManager.BIOMETRIC_SUCCESS || weak == BiometricManager.BIOMETRIC_SUCCESS
-    return biometricOk && keyguardManager.isDeviceSecure
-  }
-
-  fun canUseFace(): Boolean {
-    val strong = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-    val weak = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
-    val biometricOk = strong == BiometricManager.BIOMETRIC_SUCCESS || weak == BiometricManager.BIOMETRIC_SUCCESS
-    return biometricOk && keyguardManager.isDeviceSecure
+    return strong == BiometricManager.BIOMETRIC_SUCCESS && keyguardManager.isDeviceSecure
   }
 
   fun launchBiometricAuth(
     title: String,
     subtitle: String,
-    requireFingerprint: Boolean,
+    allowedAuthenticators: Int,
     onSuccess: () -> Unit,
   ) {
     val activity = context as? FragmentActivity
@@ -676,9 +668,9 @@ fun TabunganApp() {
       showAlert = true
       return
     }
-    val usable = if (requireFingerprint) canUseFingerprint() else canUseFace()
+    val usable = canUseFingerprint()
     if (!usable) {
-      alertMessage = if (requireFingerprint) strings["fingerprint_required"] else strings["face_required"]
+      alertMessage = strings["fingerprint_required"]
       showAlert = true
       return
     }
@@ -700,7 +692,7 @@ fun TabunganApp() {
       .setTitle(title)
       .setSubtitle(subtitle)
       .setNegativeButtonText(strings["confirm_cancel"])
-      .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+      .setAllowedAuthenticators(allowedAuthenticators)
       .build()
     prompt.authenticate(promptInfo)
   }
@@ -709,16 +701,7 @@ fun TabunganApp() {
     launchBiometricAuth(
       title = strings["fingerprint_prompt_title"],
       subtitle = strings["fingerprint_prompt_subtitle"],
-      requireFingerprint = true,
-      onSuccess = onSuccess,
-    )
-  }
-
-  fun launchFaceAuth(onSuccess: () -> Unit) {
-    launchBiometricAuth(
-      title = strings["face_prompt_title"],
-      subtitle = strings["face_prompt_subtitle"],
-      requireFingerprint = false,
+      allowedAuthenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG,
       onSuccess = onSuccess,
     )
   }
@@ -1113,25 +1096,6 @@ fun TabunganApp() {
                             prefs.edit().putBoolean("fingerprint_enabled", false).apply()
                           }
                         },
-                        faceUnlockEnabled = faceUnlockEnabled,
-                        onFaceUnlockToggle = { enabled ->
-                          if (enabled) {
-                            if (canUseFace()) {
-                              faceUnlockEnabled = true
-                              prefs.edit().putBoolean("face_unlock_enabled", true).apply()
-                              alertMessage = strings["face_enabled"]
-                              showAlert = true
-                            } else {
-                              faceUnlockEnabled = false
-                              prefs.edit().putBoolean("face_unlock_enabled", false).apply()
-                              alertMessage = strings["face_required"]
-                              showAlert = true
-                            }
-                          } else {
-                            faceUnlockEnabled = false
-                            prefs.edit().putBoolean("face_unlock_enabled", false).apply()
-                          }
-                        },
                         language = currentLang,
                         onLanguageChange = {
                           currentLang = it
@@ -1262,18 +1226,6 @@ fun TabunganApp() {
                     if (fingerprintEnabled && hasRegistered && biometricAllowed) {
                       GhostButton(text = strings["auth_fingerprint"]) {
                         launchFingerprintAuth {
-                          if (savedUsername.isBlank() || savedPassword.isBlank()) {
-                            alertMessage = strings["signin_missing"]
-                            showAlert = true
-                          } else {
-                            signInWithCredentials(savedUsername, savedPassword)
-                          }
-                        }
-                      }
-                    }
-                    if (faceUnlockEnabled && hasRegistered && biometricAllowed && canUseFace()) {
-                      GhostButton(text = strings["auth_face"]) {
-                        launchFaceAuth {
                           if (savedUsername.isBlank() || savedPassword.isBlank()) {
                             alertMessage = strings["signin_missing"]
                             showAlert = true
