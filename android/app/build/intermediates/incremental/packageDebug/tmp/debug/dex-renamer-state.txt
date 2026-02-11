@@ -1,4 +1,4 @@
-#Thu Feb 12 02:09:07 WIB 2026
+#Thu Feb 12 04:53:02 WIB 2026
 base.0=D\:\\Work\\Solvix Studio\\Website\\Tabungan Android\\android\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
 base.1=D\:\\Work\\Solvix Studio\\Website\\Tabungan Android\\android\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
 base.2=D\:\\Work\\Solvix Studio\\Website\\Tabungan Android\\android\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\8\\classes.dex

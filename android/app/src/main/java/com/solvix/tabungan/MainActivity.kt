@@ -211,6 +211,8 @@ fun TabunganApp() {
   var signUpPassword by rememberSaveable { mutableStateOf("") }
   val achievedGoalIds = remember { mutableStateListOf<String>() }
   var lastIncomeTotal by rememberSaveable { mutableStateOf(0) }
+  var lastExpenseTotal by rememberSaveable { mutableStateOf(0) }
+  var lastBalanceTotal by rememberSaveable { mutableStateOf(0) }
 
   val strings = stringsFor(currentLang)
   fun resolveStartYear(): Int {
@@ -318,14 +320,30 @@ fun TabunganApp() {
 
   fun updateGoalMilestones(notify: Boolean = true) {
     val totalIncome = incomeEntries.sumOf { it.amount }
-    val previousTotal = lastIncomeTotal
+    val totalExpense = expenseEntries.sumOf { it.amount }
+    val totalBalance = totalIncome - totalExpense
+    val previousIncome = lastIncomeTotal
+    val previousExpense = lastExpenseTotal
+    val previousBalance = lastBalanceTotal
     lastIncomeTotal = totalIncome
+    lastExpenseTotal = totalExpense
+    lastBalanceTotal = totalBalance
     achievedGoalIds.removeAll { id -> dreamEntries.none { it.id == id } }
     val newlyReached = mutableListOf<String>()
     dreamEntries.forEach { goal ->
-      val reached = goal.target > 0 && totalIncome >= goal.target
+      val progress = when (goal.sourceType) {
+        "balance" -> totalBalance
+        "expense" -> totalExpense
+        else -> totalIncome
+      }
+      val previousProgress = when (goal.sourceType) {
+        "balance" -> previousBalance
+        "expense" -> previousExpense
+        else -> previousIncome
+      }
+      val reached = goal.target > 0 && progress >= goal.target
       val hasReached = achievedGoalIds.contains(goal.id)
-      val justReached = previousTotal < goal.target && totalIncome == goal.target
+      val justReached = previousProgress < goal.target && progress == goal.target
       if (reached && !hasReached) {
         achievedGoalIds.add(goal.id)
         if (notify && justReached) {
@@ -489,6 +507,8 @@ fun TabunganApp() {
     pendingEdit = null
     achievedGoalIds.clear()
     lastIncomeTotal = 0
+    lastExpenseTotal = 0
+    lastBalanceTotal = 0
     cancelGoalDeadlineWorker()
     incomeEntries.clear()
     expenseEntries.clear()
@@ -967,6 +987,7 @@ fun TabunganApp() {
                       Page.Dreams -> DreamsPage(
                         entries = dreamEntries,
                         incomeTotal = incomeEntries.sumOf { it.amount },
+                        expenseTotal = expenseEntries.sumOf { it.amount },
                         balanceTotal = incomeEntries.sumOf { it.amount } - expenseEntries.sumOf { it.amount },
                         onInvalid = {
                           alertMessage = strings["goal_missing"]
@@ -1516,7 +1537,7 @@ private fun BottomNav(
     modifier = modifier
       .fillMaxWidth()
       .background(colors.card, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-      .shadow(20.dp, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+      .border(2.dp, colors.cardBorder, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
       .padding(horizontal = 10.dp, vertical = 14.dp),
     horizontalArrangement = Arrangement.SpaceBetween,
   ) {

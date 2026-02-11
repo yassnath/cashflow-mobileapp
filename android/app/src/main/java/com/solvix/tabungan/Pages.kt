@@ -64,10 +64,22 @@ import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import java.io.OutputStreamWriter
 import java.text.SimpleDateFormat
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.util.Calendar
 import java.util.Locale
 import java.util.Date
 import kotlin.math.roundToInt
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.ln
+import kotlin.math.log10
+import kotlin.math.sin
+import kotlin.math.sqrt
+import kotlin.math.tan
+import kotlin.math.pow
+import kotlin.math.PI
+import kotlin.math.E
 
 @Composable
 fun HeroSummary(
@@ -416,6 +428,7 @@ fun ExpensePage(
 fun DreamsPage(
   entries: List<DreamEntry>,
   incomeTotal: Int,
+  expenseTotal: Int,
   balanceTotal: Int,
   onInvalid: () -> Unit,
   onSave: (DreamEntry) -> Unit,
@@ -427,7 +440,7 @@ fun DreamsPage(
   var target by rememberSaveable { mutableStateOf("") }
   var deadline by rememberSaveable { mutableStateOf("") }
   var note by rememberSaveable { mutableStateOf("") }
-  var sourceType by rememberSaveable { mutableStateOf("income") }
+  var sourceType by rememberSaveable { mutableStateOf("") }
   var editingId by rememberSaveable { mutableStateOf<String?>(null) }
 
   fun beginEdit(entry: DreamEntry) {
@@ -436,7 +449,7 @@ fun DreamsPage(
     target = entry.target.toString()
     deadline = entry.deadline
     note = entry.note
-    sourceType = entry.sourceType.ifBlank { "income" }
+    sourceType = entry.sourceType.ifBlank { "" }
   }
 
   Column {
@@ -448,12 +461,17 @@ fun DreamsPage(
         DateField(strings["label_deadline"], value = deadline, onValueChange = { deadline = it }, placeholder = strings["placeholder_date"])
         val sourceLabels = mapOf(
           "income" to strings["goal_source_income"],
+          "expense" to strings["goal_source_expense"],
           "balance" to strings["goal_source_balance"],
         )
         AppDropdown(
           label = strings["label_goal_source"],
           placeholder = strings["placeholder_goal_source"],
-          options = listOf(strings["goal_source_income"], strings["goal_source_balance"]),
+          options = listOf(
+            strings["goal_source_income"],
+            strings["goal_source_expense"],
+            strings["goal_source_balance"],
+          ),
           selected = sourceLabels[sourceType].orEmpty(),
           onSelected = { label ->
             sourceType = sourceLabels.entries.firstOrNull { it.value == label }?.key ?: "income"
@@ -485,7 +503,7 @@ fun DreamsPage(
             target = ""
             deadline = ""
             note = ""
-            sourceType = "income"
+            sourceType = ""
             editingId = null
           },
         )
@@ -496,7 +514,11 @@ fun DreamsPage(
       Spacer(modifier = Modifier.height(12.dp))
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         visibleEntries.forEach { entry ->
-          val baseProgress = if (entry.sourceType == "balance") balanceTotal else incomeTotal
+          val baseProgress = when (entry.sourceType) {
+            "balance" -> balanceTotal
+            "expense" -> expenseTotal
+            else -> incomeTotal
+          }
           val progressValue = baseProgress.coerceAtLeast(0)
           GoalProgressCard(
             entry = entry,
@@ -530,35 +552,24 @@ fun CalculatorPage() {
           Text(text = display, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = colors.text)
         }
 
-        val keys = listOf(
-          "7", "8", "9", "÷",
-          "4", "5", "6", "×",
-          "1", "2", "3", "−",
-          "0", "⌫", "C", "+",
-        )
-        val rows: List<List<String>> = listOf(
-          keys.subList(0, 4),
-          keys.subList(4, 8),
-          keys.subList(8, 12),
-          keys.subList(12, 16),
+        val rows = listOf(
+          listOf("sin", "cos", "tan", "ln", "log"),
+          listOf("√", "^", "(", ")", "π"),
+          listOf("7", "8", "9", "÷", "C"),
+          listOf("4", "5", "6", "×", "⌫"),
+          listOf("1", "2", "3", "−", "%"),
+          listOf("0", ".", "e", "+", "="),
         )
         rows.forEach { row ->
           Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
             row.forEach { key ->
               CalculatorKey(
                 label = key,
+                isPrimary = key == "=",
                 onPress = { display = calculate(display, key) },
               )
             }
           }
-        }
-        Row(modifier = Modifier.fillMaxWidth()) {
-          CalculatorKey(
-            label = "=",
-            isWide = true,
-            isPrimary = true,
-            onPress = { display = calculate(display, "=") },
-          )
         }
       }
     }
@@ -566,11 +577,14 @@ fun CalculatorPage() {
 }
 
 @Composable
-private fun RowScope.CalculatorKey(label: String, onPress: () -> Unit, isWide: Boolean = false, isPrimary: Boolean = false) {
+private fun RowScope.CalculatorKey(label: String, onPress: () -> Unit, isPrimary: Boolean = false) {
   val colors = LocalAppColors.current
+  val isOperator = label in listOf("÷", "×", "−", "+", "^", "%")
+  val isFunction = label in listOf("sin", "cos", "tan", "ln", "log", "√")
   val backgroundColor = when {
     label == "C" || label == "⌫" -> colors.danger.copy(alpha = 0.2f)
-    label == "÷" || label == "×" || label == "−" || label == "+" -> colors.accent.copy(alpha = 0.2f)
+    isOperator -> colors.accent.copy(alpha = 0.2f)
+    isFunction -> colors.accent2.copy(alpha = 0.18f)
     else -> colors.bg2
   }
   val backgroundModifier = if (isPrimary) {
@@ -581,13 +595,15 @@ private fun RowScope.CalculatorKey(label: String, onPress: () -> Unit, isWide: B
   val textColor = when {
     isPrimary -> Color.White
     label == "C" || label == "⌫" -> Color(0xFFB92643)
-    label == "÷" || label == "×" || label == "−" || label == "+" -> Color(0xFFA55B00)
+    isOperator -> Color(0xFFA55B00)
+    isFunction -> colors.accent2
     else -> colors.text
   }
+  val fontSize = if (label.length > 1) 12.sp else 18.sp
 
   Box(
     modifier = Modifier
-      .weight(if (isWide) 1f else 0.25f)
+      .weight(1f)
       .height(48.dp)
       .clip(RoundedCornerShape(14.dp))
       .then(backgroundModifier)
@@ -595,7 +611,7 @@ private fun RowScope.CalculatorKey(label: String, onPress: () -> Unit, isWide: B
       .padding(vertical = 12.dp),
     contentAlignment = Alignment.Center,
   ) {
-    Text(text = label, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+    Text(text = label, fontSize = fontSize, fontWeight = FontWeight.SemiBold, color = textColor)
   }
 }
 
@@ -1635,7 +1651,11 @@ private fun GoalProgressCard(
   val clampedProgress = progressAmount.coerceIn(0, entry.target.coerceAtLeast(0))
   val hasProgress = clampedProgress > 0
   val track = colors.muted.copy(alpha = if (isDarkTheme(LocalThemeName.current)) 0.25f else 0.2f)
-  val valueColor = if (hasProgress) colors.accent2 else colors.muted
+  val valueColor = when {
+    entry.sourceType == "expense" -> colors.danger
+    hasProgress -> colors.accent2
+    else -> colors.muted
+  }
   val percentValue = if (entry.target > 0) {
     ((clampedProgress.toFloat() / entry.target) * 100f).coerceIn(0f, 100f)
   } else {
@@ -1643,11 +1663,14 @@ private fun GoalProgressCard(
   }
   val percentText = "${percentValue.roundToInt()}%"
   val remainder = (entry.target - clampedProgress).coerceAtLeast(0)
-  val progressBrush = Brush.sweepGradient(
-    listOf(colors.accent, colors.accent2, colors.accent),
-  )
+  val progressBrush = if (entry.sourceType == "expense") {
+    Brush.sweepGradient(listOf(colors.danger, colors.danger.copy(alpha = 0.7f), colors.danger))
+  } else {
+    Brush.sweepGradient(listOf(colors.accent, colors.accent2, colors.accent))
+  }
+  val progressColor = if (entry.sourceType == "expense") colors.danger else colors.accent
   val slices = listOf(
-    DonutSlice(label = entry.title, value = clampedProgress, color = colors.accent, brush = progressBrush),
+    DonutSlice(label = entry.title, value = clampedProgress, color = progressColor, brush = progressBrush),
     DonutSlice(label = "remaining", value = remainder, color = track),
   )
   val noteText = if (entry.note.isBlank()) "-" else entry.note
@@ -1746,13 +1769,291 @@ private fun DreamsList(
 
 private fun UUIDString(): String = java.util.UUID.randomUUID().toString()
 
+private sealed class CalcToken {
+  data class Number(val value: Double) : CalcToken()
+  data class Operator(val op: String) : CalcToken()
+  data class Function(val name: String) : CalcToken()
+  object LeftParen : CalcToken()
+  object RightParen : CalcToken()
+}
+
 private fun calculate(current: String, key: String): String {
-  if (key == "C") return "0"
-  if (key == "⌫") {
-    val trimmed = current.dropLast(1)
-    return if (trimmed.isBlank()) "0" else trimmed
+  val safeCurrent = if (current == "Error") "0" else current
+  val lastChar = safeCurrent.lastOrNull()
+
+  fun needsMultiply(): Boolean {
+    return lastChar != null && (lastChar.isDigit() || lastChar == ')' || lastChar == 'π' || lastChar == 'e')
   }
-  if (key == "=") return current
-  if (current == "0" && key.all { it.isDigit() }) return key
-  return current + key
+
+  fun openParenCount(text: String): Int = text.count { it == '(' }
+  fun closeParenCount(text: String): Int = text.count { it == ')' }
+
+  return when (key) {
+    "C" -> "0"
+    "⌫" -> {
+      val trimmed = safeCurrent.dropLast(1)
+      if (trimmed.isBlank() || trimmed == "-") "0" else trimmed
+    }
+    "=" -> evaluateExpression(safeCurrent)
+    "sin", "cos", "tan", "ln", "log" -> {
+      val prefix = if (needsMultiply()) safeCurrent + "×" else safeCurrent
+      prefix + key + "("
+    }
+    "√" -> {
+      val prefix = if (needsMultiply()) safeCurrent + "×" else safeCurrent
+      prefix + "√("
+    }
+    "π", "e" -> {
+      val prefix = if (needsMultiply()) safeCurrent + "×" else safeCurrent
+      prefix + key
+    }
+    "(" -> {
+      val prefix = if (needsMultiply()) safeCurrent + "×" else safeCurrent
+      prefix + "("
+    }
+    ")" -> {
+      if (openParenCount(safeCurrent) > closeParenCount(safeCurrent) && lastChar != null && lastChar !in listOf('+', '−', '×', '÷', '^', '(')) {
+        safeCurrent + ")"
+      } else {
+        safeCurrent
+      }
+    }
+    "." -> {
+      if (safeCurrent.isBlank() || lastChar == null || lastChar in listOf('+', '−', '×', '÷', '^', '(')) {
+        safeCurrent + "0."
+      } else {
+        val lastNumber = safeCurrent.takeLastWhile { it.isDigit() || it == '.' }
+        if (lastNumber.contains(".")) safeCurrent else safeCurrent + "."
+      }
+    }
+    "+", "−", "×", "÷", "^" -> {
+      when {
+        safeCurrent == "0" && key != "−" -> safeCurrent
+        lastChar == null -> if (key == "−") "-" else safeCurrent
+        lastChar in listOf('+', '−', '×', '÷', '^') -> safeCurrent.dropLast(1) + key
+        else -> safeCurrent + key
+      }
+    }
+    "%" -> {
+      if (lastChar != null && (lastChar.isDigit() || lastChar == ')' || lastChar == 'π' || lastChar == 'e')) {
+        safeCurrent + "%"
+      } else {
+        safeCurrent
+      }
+    }
+    else -> {
+      if (key.all { it.isDigit() }) {
+        if (safeCurrent == "0") key else safeCurrent + key
+      } else {
+        safeCurrent + key
+      }
+    }
+  }
+}
+
+private fun evaluateExpression(expression: String): String {
+  return try {
+    val tokens = tokenize(expression)
+    val rpn = toRpn(tokens)
+    val result = evalRpn(rpn)
+    formatCalcResult(result)
+  } catch (_: Exception) {
+    "Error"
+  }
+}
+
+private fun tokenize(raw: String): List<CalcToken> {
+  val expression = raw.replace("×", "*").replace("÷", "/").replace("−", "-")
+  val tokens = mutableListOf<CalcToken>()
+  var i = 0
+  while (i < expression.length) {
+    val ch = expression[i]
+    when {
+      ch.isWhitespace() -> i++
+      ch.isDigit() || ch == '.' -> {
+        val start = i
+        var hasDot = ch == '.'
+        i++
+        while (i < expression.length && (expression[i].isDigit() || (!hasDot && expression[i] == '.'))) {
+          if (expression[i] == '.') hasDot = true
+          i++
+        }
+        val numberText = expression.substring(start, i)
+        val value = numberText.toDoubleOrNull() ?: 0.0
+        tokens.add(CalcToken.Number(value))
+      }
+      ch == 'π' -> {
+        tokens.add(CalcToken.Number(PI))
+        i++
+      }
+      ch == 'e' -> {
+        tokens.add(CalcToken.Number(E))
+        i++
+      }
+      ch == '√' -> {
+        tokens.add(CalcToken.Function("sqrt"))
+        i++
+      }
+      ch.isLetter() -> {
+        val start = i
+        i++
+        while (i < expression.length && expression[i].isLetter()) i++
+        val name = expression.substring(start, i)
+        when (name.lowercase(Locale.US)) {
+          "sin", "cos", "tan", "log", "ln" -> tokens.add(CalcToken.Function(name.lowercase(Locale.US)))
+          "pi" -> tokens.add(CalcToken.Number(PI))
+          "e" -> tokens.add(CalcToken.Number(E))
+          else -> throw IllegalArgumentException("Unknown token")
+        }
+      }
+      ch == '(' -> {
+        tokens.add(CalcToken.LeftParen)
+        i++
+      }
+      ch == ')' -> {
+        tokens.add(CalcToken.RightParen)
+        i++
+      }
+      ch in listOf('+', '-', '*', '/', '^', '%') -> {
+        tokens.add(CalcToken.Operator(ch.toString()))
+        i++
+      }
+      else -> i++
+    }
+  }
+  return insertImplicitMultiplication(tokens)
+}
+
+private fun insertImplicitMultiplication(tokens: List<CalcToken>): List<CalcToken> {
+  val output = mutableListOf<CalcToken>()
+  fun isValue(token: CalcToken): Boolean = token is CalcToken.Number || token is CalcToken.RightParen
+  fun startsValue(token: CalcToken): Boolean = token is CalcToken.Number || token is CalcToken.Function || token is CalcToken.LeftParen
+  tokens.forEach { token ->
+    val prev = output.lastOrNull()
+    if (prev != null && isValue(prev) && startsValue(token)) {
+      output.add(CalcToken.Operator("*"))
+    }
+    output.add(token)
+  }
+  return output
+}
+
+private fun toRpn(tokens: List<CalcToken>): List<CalcToken> {
+  val output = mutableListOf<CalcToken>()
+  val stack = mutableListOf<CalcToken>()
+  var prev: CalcToken? = null
+
+  fun precedence(op: String): Int = when (op) {
+    "+", "-" -> 1
+    "*", "/" -> 2
+    "^" -> 3
+    "%" -> 4
+    else -> 0
+  }
+
+  fun isRightAssoc(op: String): Boolean = op == "^"
+
+  tokens.forEach { token ->
+    when (token) {
+      is CalcToken.Number -> output.add(token)
+      is CalcToken.Function -> stack.add(token)
+      is CalcToken.Operator -> {
+        val op = token.op
+        val isUnaryMinus = op == "-" && (prev == null || prev is CalcToken.Operator || prev is CalcToken.LeftParen)
+        if (isUnaryMinus) {
+          stack.add(CalcToken.Function("neg"))
+        } else {
+          while (stack.isNotEmpty()) {
+            val top = stack.last()
+            if (top is CalcToken.Operator) {
+              val topOp = top.op
+              val shouldPop = if (isRightAssoc(op)) precedence(op) < precedence(topOp) else precedence(op) <= precedence(topOp)
+              if (shouldPop) {
+                output.add(stack.removeAt(stack.lastIndex))
+              } else {
+                break
+              }
+            } else if (top is CalcToken.Function) {
+              output.add(stack.removeAt(stack.lastIndex))
+            } else {
+              break
+            }
+          }
+          stack.add(token)
+        }
+      }
+      is CalcToken.LeftParen -> stack.add(token)
+      is CalcToken.RightParen -> {
+        while (stack.isNotEmpty() && stack.last() !is CalcToken.LeftParen) {
+          output.add(stack.removeAt(stack.lastIndex))
+        }
+        if (stack.isNotEmpty() && stack.last() is CalcToken.LeftParen) {
+          stack.removeAt(stack.lastIndex)
+        }
+        if (stack.isNotEmpty() && stack.last() is CalcToken.Function) {
+          output.add(stack.removeAt(stack.lastIndex))
+        }
+      }
+    }
+    prev = token
+  }
+
+  while (stack.isNotEmpty()) {
+    val top = stack.removeAt(stack.lastIndex)
+    if (top !is CalcToken.LeftParen && top !is CalcToken.RightParen) {
+      output.add(top)
+    }
+  }
+  return output
+}
+
+private fun evalRpn(tokens: List<CalcToken>): Double {
+  val stack = mutableListOf<Double>()
+  tokens.forEach { token ->
+    when (token) {
+      is CalcToken.Number -> stack.add(token.value)
+      is CalcToken.Operator -> {
+        if (token.op == "%") {
+          val a = stack.removeAt(stack.lastIndex)
+          stack.add(a / 100.0)
+        } else {
+          val b = stack.removeAt(stack.lastIndex)
+          val a = stack.removeAt(stack.lastIndex)
+          val result = when (token.op) {
+            "+" -> a + b
+            "-" -> a - b
+            "*" -> a * b
+            "/" -> a / b
+            "^" -> a.pow(b)
+            else -> a
+          }
+          stack.add(result)
+        }
+      }
+      is CalcToken.Function -> {
+        val a = stack.removeAt(stack.lastIndex)
+        val result = when (token.name) {
+          "neg" -> -a
+          "sin" -> sin(Math.toRadians(a))
+          "cos" -> cos(Math.toRadians(a))
+          "tan" -> tan(Math.toRadians(a))
+          "log" -> log10(a)
+          "ln" -> ln(a)
+          "sqrt" -> sqrt(a)
+          else -> a
+        }
+        stack.add(result)
+      }
+      else -> Unit
+    }
+  }
+  return stack.lastOrNull() ?: 0.0
+}
+
+private fun formatCalcResult(value: Double): String {
+  if (value.isNaN() || value.isInfinite()) return "Error"
+  val sanitized = if (abs(value) < 1e-10) 0.0 else value
+  val symbols = DecimalFormatSymbols(Locale.US)
+  val formatter = DecimalFormat("#.##########", symbols)
+  return formatter.format(sanitized)
 }
