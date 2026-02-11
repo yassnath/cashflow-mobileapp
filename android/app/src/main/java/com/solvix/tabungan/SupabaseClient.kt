@@ -66,4 +66,6 @@ data class SupabaseDreamEntry(
   val current: Int = 0,
   val deadline: String = "",
   val note: String = "",
+  @SerialName("source_type")
+  val sourceType: String = "income",
 )

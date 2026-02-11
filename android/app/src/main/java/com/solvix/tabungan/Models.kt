@@ -32,6 +32,7 @@ data class DreamEntry(
   val current: Int,
   val deadline: String,
   val note: String,
+  val sourceType: String = "income",
 )
 
 data class UserProfile(

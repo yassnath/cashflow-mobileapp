@@ -458,6 +458,7 @@ fun TabunganApp() {
         current = row.current,
         deadline = row.deadline,
         note = row.note,
+        sourceType = row.sourceType.ifBlank { "income" },
       )
     }
 
@@ -617,6 +618,7 @@ fun TabunganApp() {
           put("current", entry.current)
           put("deadline", entry.deadline)
           put("note", entry.note)
+          put("source_type", entry.sourceType)
         },
       )
   }
@@ -631,6 +633,7 @@ fun TabunganApp() {
           put("current", entry.current)
           put("deadline", entry.deadline)
           put("note", entry.note)
+          put("source_type", entry.sourceType)
         },
       ) {
         filter { eq("id", entry.id) }
@@ -964,6 +967,7 @@ fun TabunganApp() {
                       Page.Dreams -> DreamsPage(
                         entries = dreamEntries,
                         incomeTotal = incomeEntries.sumOf { it.amount },
+                        balanceTotal = incomeEntries.sumOf { it.amount } - expenseEntries.sumOf { it.amount },
                         onInvalid = {
                           alertMessage = strings["goal_missing"]
                           showAlert = true
