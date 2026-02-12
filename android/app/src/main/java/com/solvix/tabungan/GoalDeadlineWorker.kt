@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.edit
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import io.github.jan.supabase.postgrest.from
@@ -85,7 +86,7 @@ class GoalDeadlineWorker(
           title = strings["goal_deadline_title"],
           body = body,
         )
-        prefs.edit().putString(markerKey, todayKey).apply()
+        prefs.edit { putString(markerKey, todayKey) }
       }
 
       Result.success()
@@ -127,6 +128,7 @@ class GoalDeadlineWorker(
   }
 
   private fun showNotification(notificationId: Int, title: String, body: String) {
+    if (!canPostNotifications()) return
     ensureChannel()
     val notification = NotificationCompat.Builder(applicationContext, GOAL_DEADLINE_CHANNEL_ID)
       .setSmallIcon(R.drawable.logo2)
@@ -135,7 +137,11 @@ class GoalDeadlineWorker(
       .setStyle(NotificationCompat.BigTextStyle().bigText(body))
       .setAutoCancel(true)
       .build()
-    NotificationManagerCompat.from(applicationContext).notify(notificationId, notification)
+    try {
+      NotificationManagerCompat.from(applicationContext).notify(notificationId, notification)
+    } catch (_: SecurityException) {
+      // Permission might be revoked while worker is running.
+    }
   }
 
   private fun ensureChannel() {

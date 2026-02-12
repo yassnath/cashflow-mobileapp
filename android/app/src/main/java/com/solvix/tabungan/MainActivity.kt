@@ -42,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,10 +68,11 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.work.Constraints
@@ -144,11 +146,11 @@ fun TabunganApp() {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("tabungan_prefs", Context.MODE_PRIVATE) }
     LaunchedEffect(Unit) {
-      prefs.edit().remove("face_unlock_enabled").apply()
+      prefs.edit { remove("face_unlock_enabled") }
     }
     val lifecycleOwner = LocalLifecycleOwner.current
-    var fadeSeed by remember { mutableStateOf(0) }
-    var pageFadeSeed by remember { mutableStateOf(0) }
+    var fadeSeed by remember { mutableIntStateOf(0) }
+    var pageFadeSeed by remember { mutableIntStateOf(0) }
     DisposableEffect(lifecycleOwner) {
       val observer = LifecycleEventObserver { _, event ->
         if (event == Lifecycle.Event.ON_START) {
@@ -171,7 +173,6 @@ fun TabunganApp() {
   var currentLang by rememberSaveable {
     mutableStateOf(if (defaultLang == "ID") AppLanguage.ID else AppLanguage.EN)
   }
-  val registeredUsers = remember { mutableStateListOf<UserProfile>() }
   var currentUser by remember { mutableStateOf<UserProfile?>(null) }
   val scope = rememberCoroutineScope()
   var isLoggedIn by remember { mutableStateOf(false) }
@@ -210,9 +211,9 @@ fun TabunganApp() {
   var signUpUsername by rememberSaveable { mutableStateOf("") }
   var signUpPassword by rememberSaveable { mutableStateOf("") }
   val achievedGoalIds = remember { mutableStateListOf<String>() }
-  var lastIncomeTotal by rememberSaveable { mutableStateOf(0) }
-  var lastExpenseTotal by rememberSaveable { mutableStateOf(0) }
-  var lastBalanceTotal by rememberSaveable { mutableStateOf(0) }
+  var lastIncomeTotal by rememberSaveable { mutableIntStateOf(0) }
+  var lastExpenseTotal by rememberSaveable { mutableIntStateOf(0) }
+  var lastBalanceTotal by rememberSaveable { mutableIntStateOf(0) }
 
   val strings = stringsFor(currentLang)
   fun resolveStartYear(): Int {
@@ -240,7 +241,7 @@ fun TabunganApp() {
       name = user.name,
       email = user.email,
       country = user.country,
-      birthdate = toUiDate(user.birthdate ?: ""),
+      birthdate = toUiDate(user.birthdate),
       bio = user.bio.orEmpty(),
       createdAt = user.createdAt,
       username = user.username,
@@ -278,8 +279,8 @@ fun TabunganApp() {
           put("name", user.name)
           put("email", user.email)
           put("country", user.country)
-          put("bio", user.bio ?: "")
-          put("birthdate", toUiDate(user.birthdate ?: ""))
+          put("bio", user.bio)
+          put("birthdate", toUiDate(user.birthdate))
           if (user.createdAt.isNotBlank()) {
             put("created_at", user.createdAt)
           }
@@ -311,11 +312,11 @@ fun TabunganApp() {
     savedUsername = username
     savedPassword = password
     hasRegistered = true
-    prefs.edit()
-      .putBoolean("has_registered", true)
-      .putString("saved_username", username)
-      .putString("saved_password", password)
-      .apply()
+    prefs.edit {
+      putBoolean("has_registered", true)
+      putString("saved_username", username)
+      putString("saved_password", password)
+    }
   }
 
   fun updateGoalMilestones(notify: Boolean = true) {
@@ -561,7 +562,7 @@ fun TabunganApp() {
             isLoggedIn = true
             showAuth = false
             biometricAllowed = true
-            prefs.edit().putBoolean("biometric_allowed", true).apply()
+            prefs.edit { putBoolean("biometric_allowed", true) }
             persistCredentials(matchedUser.username, matchedUser.password)
             scheduleGoalDeadlineWorker()
             toastMessage = strings["login_success"]
@@ -874,7 +875,7 @@ fun TabunganApp() {
                         } else {
                           clearUserData()
                           biometricAllowed = false
-                          prefs.edit().putBoolean("biometric_allowed", false).apply()
+                          prefs.edit { putBoolean("biometric_allowed", false) }
                           showSplash = false
                           showAuth = false
                           loadingTarget = LoadingTarget.Logout
@@ -920,7 +921,6 @@ fun TabunganApp() {
 
                     when (currentPage) {
                       Page.Income -> IncomePage(
-                        entries = incomeEntries,
                         onSave = { entry ->
                           incomeEntries.add(entry)
                           updateGoalMilestones()
@@ -940,21 +940,11 @@ fun TabunganApp() {
                           toastMessage = strings["income_updated"]
                           toastVisible = true
                         },
-                        onDelete = { entry ->
-                          requestConfirm(strings["confirm_delete_income"]) {
-                            incomeEntries.removeAll { it.id == entry.id }
-                            updateGoalMilestones()
-                            if (activeUserId.isNotBlank()) {
-                              scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
-                            }
-                          }
-                        },
                         editEntry = pendingEdit,
                         onEditConsumed = { pendingEdit = null },
                         strings = strings,
                       )
                       Page.Expense -> ExpensePage(
-                        entries = expenseEntries,
                         onSave = { entry ->
                           expenseEntries.add(entry)
                           if (activeUserId.isNotBlank()) {
@@ -971,14 +961,6 @@ fun TabunganApp() {
                           }
                           toastMessage = strings["expense_updated"]
                           toastVisible = true
-                        },
-                        onDelete = { entry ->
-                          requestConfirm(strings["confirm_delete_expense"]) {
-                            expenseEntries.removeAll { it.id == entry.id }
-                            if (activeUserId.isNotBlank()) {
-                              scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
-                            }
-                          }
                         },
                         editEntry = pendingEdit,
                         onEditConsumed = { pendingEdit = null },
@@ -1081,7 +1063,7 @@ fun TabunganApp() {
                         onLogout = {
                           clearUserData()
                           biometricAllowed = false
-                          prefs.edit().putBoolean("biometric_allowed", false).apply()
+                          prefs.edit { putBoolean("biometric_allowed", false) }
                           showSplash = false
                           showAuth = false
                           loadingTarget = LoadingTarget.Logout
@@ -1107,24 +1089,24 @@ fun TabunganApp() {
                           if (enabled) {
                             if (canUseFingerprint()) {
                               fingerprintEnabled = true
-                              prefs.edit().putBoolean("fingerprint_enabled", true).apply()
+                              prefs.edit { putBoolean("fingerprint_enabled", true) }
                               alertMessage = strings["fingerprint_enabled"]
                               showAlert = true
                             } else {
                               fingerprintEnabled = false
-                              prefs.edit().putBoolean("fingerprint_enabled", false).apply()
+                              prefs.edit { putBoolean("fingerprint_enabled", false) }
                               alertMessage = strings["fingerprint_required"]
                               showAlert = true
                             }
                           } else {
                             fingerprintEnabled = false
-                            prefs.edit().putBoolean("fingerprint_enabled", false).apply()
+                            prefs.edit { putBoolean("fingerprint_enabled", false) }
                           }
                         },
                         language = currentLang,
                         onLanguageChange = {
                           currentLang = it
-                          prefs.edit().putString("app_language", if (it == AppLanguage.ID) "ID" else "EN").apply()
+                          prefs.edit { putString("app_language", if (it == AppLanguage.ID) "ID" else "EN") }
                         },
                         strings = strings,
                         onToast = {
@@ -1182,7 +1164,7 @@ fun TabunganApp() {
                   .align(Alignment.End)
                   .clickable {
                     hasSeenWelcome = true
-                    prefs.edit().putBoolean("has_seen_welcome", true).apply()
+                    prefs.edit { putBoolean("has_seen_welcome", true) }
                     showSplash = false
                     showAuth = true
                     authTab = AuthTab.SignIn
@@ -1197,7 +1179,7 @@ fun TabunganApp() {
               Spacer(modifier = Modifier.height(16.dp))
               GradientButton(text = strings["welcome_action"]) {
                 hasSeenWelcome = true
-                prefs.edit().putBoolean("has_seen_welcome", true).apply()
+                prefs.edit { putBoolean("has_seen_welcome", true) }
                 if (fingerprintEnabled && biometricAllowed && canUseFingerprint()) {
                   launchFingerprintAuth {
                     showSplash = false
@@ -1356,7 +1338,7 @@ fun TabunganApp() {
               .alpha(loadingAlpha),
             contentAlignment = Alignment.Center,
           ) {
-            LoadingLogo(text = strings["loading"])
+            LoadingLogo()
           }
         }
       }
@@ -1589,7 +1571,12 @@ private fun AmbientBackground() {
     Blob(
       modifier = Modifier
         .size(280.dp)
-        .offset(x = (-60).dp, y = (-80 + float1).dp),
+        .offset {
+          IntOffset(
+            x = (-60).dp.roundToPx(),
+            y = (-80 + float1).dp.roundToPx(),
+          )
+        },
       brush = Brush.radialGradient(
         listOf(colors.accent, Color.Transparent),
       ),
@@ -1598,7 +1585,12 @@ private fun AmbientBackground() {
       modifier = Modifier
         .size(280.dp)
         .align(Alignment.BottomEnd)
-        .offset(x = 80.dp, y = (120 + float2).dp),
+        .offset {
+          IntOffset(
+            x = 80.dp.roundToPx(),
+            y = (120 + float2).dp.roundToPx(),
+          )
+        },
       brush = Brush.radialGradient(
         listOf(colors.accent2, Color.Transparent),
       ),
@@ -1607,7 +1599,12 @@ private fun AmbientBackground() {
       modifier = Modifier
         .size(280.dp)
         .align(Alignment.CenterEnd)
-        .offset(x = 120.dp, y = float1.dp),
+        .offset {
+          IntOffset(
+            x = 120.dp.roundToPx(),
+            y = float1.dp.roundToPx(),
+          )
+        },
       brush = Brush.radialGradient(
         listOf(Color(0xFF8AA7FF), Color.Transparent),
       ),
@@ -1669,7 +1666,7 @@ private fun ModalOverlay(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun LoadingLogo(text: String) {
+private fun LoadingLogo() {
   val strings = LocalStrings.current
   val transition = rememberInfiniteTransition(label = "loading")
   val scale by transition.animateFloat(

@@ -1,5 +1,0 @@
-com.solvix.tabungan.test.app-androidTest-0 D:\Work\Solvix Studio\Website\Tabungan Android\android\app\build\generated\res\resValues\androidTest\debug
-com.solvix.tabungan.test.app-updated_navigation_xml-1 D:\Work\Solvix Studio\Website\Tabungan Android\android\app\build\generated\updated_navigation_xml\debugAndroidTest
-com.solvix.tabungan.test.app-mergeDebugAndroidTestResources-2 D:\Work\Solvix Studio\Website\Tabungan Android\android\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
-com.solvix.tabungan.test.app-mergeDebugAndroidTestResources-3 D:\Work\Solvix Studio\Website\Tabungan Android\android\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
-com.solvix.tabungan.test.app-debugAndroidTest-4 D:\Work\Solvix Studio\Website\Tabungan Android\android\app\build\intermediates\merged_res\debugAndroidTest\mergeDebugAndroidTestResources

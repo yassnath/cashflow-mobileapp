@@ -1,9 +1,0 @@
-R_DEF: Internal format may change without notice
-local
-drawable logo2
-font fredoka_bold
-font fredoka_medium
-font fredoka_regular
-font fredoka_semibold
-string app_name
-style Theme.Tabungan

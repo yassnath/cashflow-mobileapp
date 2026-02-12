@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,7 +54,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -88,15 +88,16 @@ object AppDimens {
 
 @Composable
 fun AppCard(
-  modifier: Modifier = Modifier.fillMaxWidth(),
+  modifier: Modifier = Modifier,
   shape: RoundedCornerShape = RoundedCornerShape(AppDimens.radiusLg),
   content: @Composable ColumnScope.() -> Unit,
 ) {
   val colors = LocalAppColors.current
   val shadowColor = Color.Black.copy(alpha = 0.18f)
+  val cardModifier = if (modifier == Modifier) Modifier.fillMaxWidth() else modifier
   CompositionLocalProvider(LocalContentColor provides colors.text) {
     Column(
-      modifier = modifier
+      modifier = cardModifier
         .shadow(AppDimens.shadow, shape, ambientColor = shadowColor, spotColor = shadowColor)
         .border(1.dp, colors.cardBorder, shape)
         .background(colors.card, shape)
@@ -307,16 +308,17 @@ fun AppDropdown(
   options: List<String>,
   selected: String,
   onSelected: (String) -> Unit,
-  modifier: Modifier = Modifier.fillMaxWidth(),
+  modifier: Modifier = Modifier,
 ) {
   val colors = LocalAppColors.current
   var expanded by remember { mutableStateOf(false) }
-  var fieldWidthPx by remember { mutableStateOf(0) }
+  var fieldWidthPx by remember { mutableIntStateOf(0) }
   var anchorBounds by remember { mutableStateOf(IntRect.Zero) }
   val density = LocalDensity.current
   val extraYOffsetPx = with(density) { 10.dp.roundToPx() }
+  val dropdownModifier = if (modifier == Modifier) Modifier.fillMaxWidth() else modifier
 
-  Column(modifier = modifier) {
+  Column(modifier = dropdownModifier) {
     if (label.isNotBlank()) {
       Text(text = label, fontSize = 13.sp, color = colors.text)
       Spacer(modifier = Modifier.height(6.dp))
@@ -356,7 +358,7 @@ fun AppDropdown(
       val positionProvider = remember(anchorBounds, extraYOffsetPx) {
         object : PopupPositionProvider {
           override fun calculatePosition(
-            anchorBoundsIgnored: IntRect,
+            anchorBounds: IntRect,
             windowSize: IntSize,
             layoutDirection: LayoutDirection,
             popupContentSize: IntSize,
@@ -615,7 +617,7 @@ fun DropDownMenuCard(
   val positionProvider = remember(anchorBounds, alignRight, extraYOffsetPx, extraXOffsetPx) {
     object : PopupPositionProvider {
       override fun calculatePosition(
-        anchorBoundsIgnored: IntRect,
+        anchorBounds: IntRect,
         windowSize: IntSize,
         layoutDirection: LayoutDirection,
         popupContentSize: IntSize,

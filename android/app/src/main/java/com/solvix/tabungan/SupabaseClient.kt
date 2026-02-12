@@ -11,7 +11,6 @@ object SupabaseClient {
   private val json = Json {
     ignoreUnknownKeys = true
     coerceInputValues = true
-    explicitNulls = false
   }
 
   val client = createSupabaseClient(

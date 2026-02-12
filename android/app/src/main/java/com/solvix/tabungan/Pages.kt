@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -208,10 +209,8 @@ fun DateField(
 
 @Composable
 fun IncomePage(
-  entries: List<MoneyEntry>,
   onSave: (MoneyEntry) -> Unit,
   onUpdate: (MoneyEntry) -> Unit,
-  onDelete: (MoneyEntry) -> Unit,
   editEntry: MoneyEntry?,
   onEditConsumed: () -> Unit,
   strings: AppStrings,
@@ -317,10 +316,8 @@ fun IncomePage(
 
 @Composable
 fun ExpensePage(
-  entries: List<MoneyEntry>,
   onSave: (MoneyEntry) -> Unit,
   onUpdate: (MoneyEntry) -> Unit,
-  onDelete: (MoneyEntry) -> Unit,
   editEntry: MoneyEntry?,
   onEditConsumed: () -> Unit,
   strings: AppStrings,
@@ -736,9 +733,7 @@ fun ReportPage(
   val colors = LocalAppColors.current
   val theme = LocalThemeName.current
   val context = LocalContext.current
-  val incomeTotal = income.sumOf { it.amount }
-  val expenseTotal = expense.sumOf { it.amount }
-  var modeIndex by rememberSaveable { mutableStateOf(0) }
+  var modeIndex by rememberSaveable { mutableIntStateOf(0) }
   val monthly = buildMonthlySeries(income, expense, language)
   val yearly = buildYearlySeries(income, expense, startYear)
   val series = if (modeIndex == 0) monthly else yearly
@@ -1151,7 +1146,7 @@ fun SettingsPage(
   onToast: (String) -> Unit,
 ) {
   val colors = LocalAppColors.current
-  var langIndex by rememberSaveable { mutableStateOf(0) }
+  var langIndex by rememberSaveable { mutableIntStateOf(0) }
   var currentPassword by rememberSaveable { mutableStateOf("") }
   var newPassword by rememberSaveable { mutableStateOf("") }
   var confirmPassword by rememberSaveable { mutableStateOf("") }
@@ -1777,12 +1772,21 @@ private sealed class CalcToken {
   object RightParen : CalcToken()
 }
 
-private fun calculate(current: String, key: String): String {
+internal fun calculate(current: String, key: String): String {
   val safeCurrent = if (current == "Error") "0" else current
   val lastChar = safeCurrent.lastOrNull()
+  val isZeroState = safeCurrent == "0"
 
   fun needsMultiply(): Boolean {
-    return lastChar != null && (lastChar.isDigit() || lastChar == ')' || lastChar == 'π' || lastChar == 'e')
+    return !isZeroState && lastChar != null && (lastChar.isDigit() || lastChar == ')' || lastChar == 'π' || lastChar == 'e')
+  }
+
+  fun prefixForValueStart(): String {
+    return when {
+      isZeroState -> ""
+      needsMultiply() -> safeCurrent + "×"
+      else -> safeCurrent
+    }
   }
 
   fun openParenCount(text: String): Int = text.count { it == '(' }
@@ -1796,20 +1800,16 @@ private fun calculate(current: String, key: String): String {
     }
     "=" -> evaluateExpression(safeCurrent)
     "sin", "cos", "tan", "ln", "log" -> {
-      val prefix = if (needsMultiply()) safeCurrent + "×" else safeCurrent
-      prefix + key + "("
+      prefixForValueStart() + key + "("
     }
     "√" -> {
-      val prefix = if (needsMultiply()) safeCurrent + "×" else safeCurrent
-      prefix + "√("
+      prefixForValueStart() + "√("
     }
     "π", "e" -> {
-      val prefix = if (needsMultiply()) safeCurrent + "×" else safeCurrent
-      prefix + key
+      prefixForValueStart() + key
     }
     "(" -> {
-      val prefix = if (needsMultiply()) safeCurrent + "×" else safeCurrent
-      prefix + "("
+      prefixForValueStart() + "("
     }
     ")" -> {
       if (openParenCount(safeCurrent) > closeParenCount(safeCurrent) && lastChar != null && lastChar !in listOf('+', '−', '×', '÷', '^', '(')) {
