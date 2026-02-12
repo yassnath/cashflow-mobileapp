@@ -431,6 +431,8 @@ fun DreamsPage(
   onSave: (DreamEntry) -> Unit,
   onUpdate: (DreamEntry) -> Unit,
   onDelete: (DreamEntry) -> Unit,
+  goalReachSourceType: String?,
+  onGoalReachDismiss: () -> Unit,
   strings: AppStrings,
 ) {
   var title by rememberSaveable { mutableStateOf("") }
@@ -439,6 +441,7 @@ fun DreamsPage(
   var note by rememberSaveable { mutableStateOf("") }
   var sourceType by rememberSaveable { mutableStateOf("") }
   var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+  var formFadeSeed by rememberSaveable { mutableIntStateOf(0) }
 
   fun beginEdit(entry: DreamEntry) {
     editingId = entry.id
@@ -447,63 +450,74 @@ fun DreamsPage(
     deadline = entry.deadline
     note = entry.note
     sourceType = entry.sourceType.ifBlank { "" }
+    formFadeSeed += 1
   }
 
   Column {
     SectionTitle(icon = themePageIcon(LocalThemeName.current, Page.Dreams), title = strings["section_dreams_title"], subtitle = strings["section_dreams_subtitle"])
-    AppCard {
-      Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AppTextField(strings["label_target_name"], value = title, onValueChange = { title = it }, placeholder = strings["placeholder_target"])
-        AppTextField(strings["label_target_amount"], value = target, onValueChange = { target = it }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-        DateField(strings["label_deadline"], value = deadline, onValueChange = { deadline = it }, placeholder = strings["placeholder_date"])
-        val sourceLabels = mapOf(
-          "income" to strings["goal_source_income"],
-          "expense" to strings["goal_source_expense"],
-          "balance" to strings["goal_source_balance"],
-        )
-        AppDropdown(
-          label = strings["label_goal_source"],
-          placeholder = strings["placeholder_goal_source"],
-          options = listOf(
-            strings["goal_source_income"],
-            strings["goal_source_expense"],
-            strings["goal_source_balance"],
-          ),
-          selected = sourceLabels[sourceType].orEmpty(),
-          onSelected = { label ->
-            sourceType = sourceLabels.entries.firstOrNull { it.value == label }?.key ?: "income"
-          },
-        )
-        AppTextField(strings["label_note"], value = note, onValueChange = { note = it }, placeholder = strings["placeholder_strategy"], minLines = 2)
-        val trimmedTitle = title.trim()
-        val targetAmount = parseAmount(target)
-        val isFormValid = trimmedTitle.isNotBlank() && targetAmount > 0 && deadline.isNotBlank() && sourceType.isNotBlank()
-        GradientButton(
-          text = if (editingId == null) strings["save_dream"] else strings["update_dream"],
-          enabled = isFormValid,
-          onClick = {
-            if (!isFormValid) {
-              onInvalid()
-              return@GradientButton
-            }
-            val entry = DreamEntry(
-              id = editingId ?: UUIDString(),
-              title = trimmedTitle,
-              target = targetAmount,
-              current = 0,
-              deadline = deadline,
-              note = note,
-              sourceType = sourceType,
-            )
-            if (editingId == null) onSave(entry) else onUpdate(entry)
-            title = ""
-            target = ""
-            deadline = ""
-            note = ""
-            sourceType = ""
-            editingId = null
-          },
-        )
+    if (!goalReachSourceType.isNullOrBlank()) {
+      GoalReachedPopup(
+        sourceType = goalReachSourceType,
+        onDismiss = onGoalReachDismiss,
+        strings = strings,
+      )
+      Spacer(modifier = Modifier.height(12.dp))
+    }
+    FadeInPage(key = "goals_form_${editingId ?: "new"}_$formFadeSeed") {
+      AppCard {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+          AppTextField(strings["label_target_name"], value = title, onValueChange = { title = it }, placeholder = strings["placeholder_target"])
+          AppTextField(strings["label_target_amount"], value = target, onValueChange = { target = it }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+          DateField(strings["label_deadline"], value = deadline, onValueChange = { deadline = it }, placeholder = strings["placeholder_date"])
+          val sourceLabels = mapOf(
+            "income" to strings["goal_source_income"],
+            "expense" to strings["goal_source_expense"],
+            "balance" to strings["goal_source_balance"],
+          )
+          AppDropdown(
+            label = strings["label_goal_source"],
+            placeholder = strings["placeholder_goal_source"],
+            options = listOf(
+              strings["goal_source_income"],
+              strings["goal_source_expense"],
+              strings["goal_source_balance"],
+            ),
+            selected = sourceLabels[sourceType].orEmpty(),
+            onSelected = { label ->
+              sourceType = sourceLabels.entries.firstOrNull { it.value == label }?.key ?: "income"
+            },
+          )
+          AppTextField(strings["label_note"], value = note, onValueChange = { note = it }, placeholder = strings["placeholder_strategy"], minLines = 2)
+          val trimmedTitle = title.trim()
+          val targetAmount = parseAmount(target)
+          val isFormValid = trimmedTitle.isNotBlank() && targetAmount > 0 && deadline.isNotBlank() && sourceType.isNotBlank()
+          GradientButton(
+            text = if (editingId == null) strings["save_dream"] else strings["update_dream"],
+            enabled = isFormValid,
+            onClick = {
+              if (!isFormValid) {
+                onInvalid()
+                return@GradientButton
+              }
+              val entry = DreamEntry(
+                id = editingId ?: UUIDString(),
+                title = trimmedTitle,
+                target = targetAmount,
+                current = 0,
+                deadline = deadline,
+                note = note,
+                sourceType = sourceType,
+              )
+              if (editingId == null) onSave(entry) else onUpdate(entry)
+              title = ""
+              target = ""
+              deadline = ""
+              note = ""
+              sourceType = ""
+              editingId = null
+            },
+          )
+        }
       }
     }
     val visibleEntries = entries.filter { it.target > 0 }
@@ -525,6 +539,44 @@ fun DreamsPage(
           )
         }
       }
+    }
+  }
+}
+
+@Composable
+private fun GoalReachedPopup(
+  sourceType: String,
+  onDismiss: () -> Unit,
+  strings: AppStrings,
+) {
+  val colors = LocalAppColors.current
+  val isExpenseSource = sourceType == "expense"
+  val message = if (isExpenseSource) {
+    strings["goal_reached_popup_expense"]
+  } else {
+    strings["goal_reached_popup_income_balance"]
+  }
+  val messageColor = if (isExpenseSource) colors.danger else Color(0xFF16A34A)
+
+  AppCard {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End,
+      ) {
+        Text(
+          text = "x",
+          color = colors.muted,
+          fontWeight = FontWeight.Bold,
+          modifier = Modifier.clickable { onDismiss() },
+        )
+      }
+      Text(
+        text = message,
+        color = messageColor,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 13.sp,
+      )
     }
   }
 }

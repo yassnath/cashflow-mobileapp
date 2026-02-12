@@ -195,7 +195,7 @@ fun ChipButton(
     modifier = modifier
       .clip(RoundedCornerShape(999.dp))
       .background(colors.card)
-      .border(1.dp, borderColor, RoundedCornerShape(999.dp))
+      .border(2.dp, borderColor, RoundedCornerShape(999.dp))
       .shadow(10.dp, RoundedCornerShape(999.dp), ambientColor = shadowColor, spotColor = shadowColor)
       .clickable(onClick = onClick)
       .padding(horizontal = 14.dp, vertical = 10.dp),
@@ -660,14 +660,32 @@ fun DropDownMenuCard(
 }
 
 @Composable
-fun MenuItem(text: String, emoji: String, color: Color? = null, onClick: () -> Unit) {
+fun MenuItem(
+  text: String,
+  emoji: String,
+  color: Color? = null,
+  active: Boolean = false,
+  onClick: () -> Unit,
+) {
   val colors = LocalAppColors.current
   val itemColor = color ?: colors.text
+  val bgModifier = if (active) {
+    Modifier.background(
+      brush = Brush.linearGradient(
+        listOf(
+          colors.accent,
+          colors.accent2,
+        ),
+      ),
+    )
+  } else {
+    Modifier.background(colors.bg2)
+  }
   Row(
     modifier = Modifier
       .fillMaxWidth()
       .clip(RoundedCornerShape(12.dp))
-      .background(colors.bg2)
+      .then(bgModifier)
       .clickable(onClick = onClick)
       .padding(10.dp),
     verticalAlignment = Alignment.CenterVertically,

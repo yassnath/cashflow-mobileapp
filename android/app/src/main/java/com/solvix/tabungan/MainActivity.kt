@@ -1,8 +1,12 @@
 package com.solvix.tabungan
 
-import android.os.Bundle
-import android.content.Context
 import android.app.KeyguardManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -57,6 +61,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
@@ -73,6 +78,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.work.Constraints
@@ -122,15 +129,28 @@ private enum class AuthTab { SignIn, SignUp }
 private enum class LoadingTarget { Startup, Logout }
 
 private const val GOAL_DEADLINE_WORK = "goal_deadline_worker"
+private const val GOAL_REACHED_CHANNEL_ID = "goal_reached_channel"
+private const val PREF_SELECTED_THEME = "selected_theme"
+
+private data class GoalReachEvent(
+  val goalId: String,
+  val sourceType: String,
+)
 
 @Composable
 fun TabunganApp() {
-  var currentTheme by rememberSaveable { mutableStateOf(ThemeName.StandardLight) }
-    var currentPage by rememberSaveable { mutableStateOf(Page.Income) }
-    var summaryRange by rememberSaveable { mutableStateOf(SummaryRange.Month) }
-    var showProfileMenu by remember { mutableStateOf(false) }
-    var showSplash by rememberSaveable { mutableStateOf(false) }
-    var showLoading by rememberSaveable { mutableStateOf(true) }
+  val context = LocalContext.current
+  val prefs = remember { context.getSharedPreferences("tabungan_prefs", Context.MODE_PRIVATE) }
+  val persistedTheme = remember {
+    val storedTheme = prefs.getString(PREF_SELECTED_THEME, ThemeName.StandardLight.name)
+    runCatching { ThemeName.valueOf(storedTheme ?: ThemeName.StandardLight.name) }.getOrDefault(ThemeName.StandardLight)
+  }
+  var currentTheme by rememberSaveable { mutableStateOf(persistedTheme) }
+  var currentPage by rememberSaveable { mutableStateOf(Page.Income) }
+  var summaryRange by rememberSaveable { mutableStateOf(SummaryRange.Month) }
+  var showProfileMenu by remember { mutableStateOf(false) }
+  var showSplash by rememberSaveable { mutableStateOf(false) }
+  var showLoading by rememberSaveable { mutableStateOf(true) }
   var loadingFadeOut by rememberSaveable { mutableStateOf(false) }
   var loadingTarget by rememberSaveable { mutableStateOf(LoadingTarget.Startup) }
   var showAuth by rememberSaveable { mutableStateOf(false) }
@@ -139,35 +159,34 @@ fun TabunganApp() {
   val adminUsers = remember { mutableStateListOf<SupabaseUser>() }
   var showConfirm by remember { mutableStateOf(false) }
   var confirmMessage by remember { mutableStateOf("") }
-    var confirmAction by remember { mutableStateOf<(() -> Unit)?>(null) }
-    var showAlert by remember { mutableStateOf(false) }
-    var alertMessage by remember { mutableStateOf("") }
-    var pendingEdit by remember { mutableStateOf<MoneyEntry?>(null) }
-    val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences("tabungan_prefs", Context.MODE_PRIVATE) }
-    LaunchedEffect(Unit) {
-      prefs.edit { remove("face_unlock_enabled") }
-    }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var fadeSeed by remember { mutableIntStateOf(0) }
-    var pageFadeSeed by remember { mutableIntStateOf(0) }
-    DisposableEffect(lifecycleOwner) {
-      val observer = LifecycleEventObserver { _, event ->
-        if (event == Lifecycle.Event.ON_START) {
-          fadeSeed += 1
-        }
+  var confirmAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+  var showAlert by remember { mutableStateOf(false) }
+  var alertMessage by remember { mutableStateOf("") }
+  var pendingEdit by remember { mutableStateOf<MoneyEntry?>(null) }
+  var goalReachEvent by remember { mutableStateOf<GoalReachEvent?>(null) }
+  LaunchedEffect(Unit) {
+    prefs.edit { remove("face_unlock_enabled") }
+  }
+  val lifecycleOwner = LocalLifecycleOwner.current
+  var fadeSeed by remember { mutableIntStateOf(0) }
+  var pageFadeSeed by remember { mutableIntStateOf(0) }
+  DisposableEffect(lifecycleOwner) {
+    val observer = LifecycleEventObserver { _, event ->
+      if (event == Lifecycle.Event.ON_START) {
+        fadeSeed += 1
       }
-      lifecycleOwner.lifecycle.addObserver(observer)
-      onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-      fun navigateTo(page: Page) {
-        if (currentPage == page) {
-          pageFadeSeed += 1
-          return
-        }
-        currentPage = page
-      }
-    var toastVisible by remember { mutableStateOf(false) }
+    lifecycleOwner.lifecycle.addObserver(observer)
+    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+  }
+  fun navigateTo(page: Page) {
+    if (currentPage == page) {
+      pageFadeSeed += 1
+      return
+    }
+    currentPage = page
+  }
+  var toastVisible by remember { mutableStateOf(false) }
   var toastMessage by remember { mutableStateOf("") }
   val defaultLang = prefs.getString("app_language", "EN") ?: "EN"
   var currentLang by rememberSaveable {
@@ -176,14 +195,17 @@ fun TabunganApp() {
   var currentUser by remember { mutableStateOf<UserProfile?>(null) }
   val scope = rememberCoroutineScope()
   var isLoggedIn by remember { mutableStateOf(false) }
-    LaunchedEffect(currentPage) {
+  LaunchedEffect(currentTheme) {
+    prefs.edit { putString(PREF_SELECTED_THEME, currentTheme.name) }
+  }
+  LaunchedEffect(currentPage) {
+    pageFadeSeed += 1
+  }
+  LaunchedEffect(showAuth, showSplash, isLoggedIn) {
+    if (!showAuth && !showSplash && isLoggedIn) {
       pageFadeSeed += 1
     }
-    LaunchedEffect(showAuth, showSplash, isLoggedIn) {
-      if (!showAuth && !showSplash && isLoggedIn) {
-        pageFadeSeed += 1
-      }
-    }
+  }
   var hasSeenWelcome by remember { mutableStateOf(prefs.getBoolean("has_seen_welcome", false)) }
   var fingerprintEnabled by rememberSaveable { mutableStateOf(prefs.getBoolean("fingerprint_enabled", false)) }
   var biometricAllowed by rememberSaveable { mutableStateOf(prefs.getBoolean("biometric_allowed", false)) }
@@ -319,6 +341,45 @@ fun TabunganApp() {
     }
   }
 
+  fun showGoalReachedNotification(goal: DreamEntry) {
+    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      val channel = NotificationChannel(
+        GOAL_REACHED_CHANNEL_ID,
+        strings["goal_reached_notification_title"],
+        NotificationManager.IMPORTANCE_DEFAULT,
+      ).apply {
+        description = strings["goal_reached_notification_desc"]
+      }
+      notificationManager.createNotificationChannel(channel)
+    }
+    if (
+      Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+      ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+    ) {
+      return
+    }
+    val body = strings["goal_reached_notification_body"]
+      .replace("{title}", goal.title.ifBlank { strings["label_goal"] })
+      .replace(
+        "{message}",
+        if (goal.sourceType == "expense") {
+          strings["goal_reached_popup_expense"]
+        } else {
+          strings["goal_reached_popup_income_balance"]
+        },
+      )
+    val notification = NotificationCompat.Builder(context, GOAL_REACHED_CHANNEL_ID)
+      .setSmallIcon(R.drawable.logo2)
+      .setContentTitle(strings["goal_reached_notification_title"])
+      .setContentText(body)
+      .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+      .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+      .setAutoCancel(true)
+      .build()
+    NotificationManagerCompat.from(context).notify(goal.id.hashCode(), notification)
+  }
+
   fun updateGoalMilestones(notify: Boolean = true) {
     val totalIncome = incomeEntries.sumOf { it.amount }
     val totalExpense = expenseEntries.sumOf { it.amount }
@@ -330,7 +391,7 @@ fun TabunganApp() {
     lastExpenseTotal = totalExpense
     lastBalanceTotal = totalBalance
     achievedGoalIds.removeAll { id -> dreamEntries.none { it.id == id } }
-    val newlyReached = mutableListOf<String>()
+    val newlyReached = mutableListOf<DreamEntry>()
     dreamEntries.forEach { goal ->
       val progress = when (goal.sourceType) {
         "balance" -> totalBalance
@@ -344,11 +405,11 @@ fun TabunganApp() {
       }
       val reached = goal.target > 0 && progress >= goal.target
       val hasReached = achievedGoalIds.contains(goal.id)
-      val justReached = previousProgress < goal.target && progress == goal.target
+      val justReached = previousProgress < goal.target && progress >= goal.target
       if (reached && !hasReached) {
         achievedGoalIds.add(goal.id)
         if (notify && justReached) {
-          newlyReached.add(goal.title)
+          newlyReached.add(goal)
         }
       }
       if (!reached && hasReached) {
@@ -357,11 +418,19 @@ fun TabunganApp() {
     }
     if (notify && newlyReached.isNotEmpty()) {
       toastMessage = if (newlyReached.size == 1) {
-        strings["goal_reached_single"].replace("{title}", newlyReached.first())
+        strings["goal_reached_single"].replace("{title}", newlyReached.first().title)
       } else {
         strings["goal_reached_multi"].replace("{count}", newlyReached.size.toString())
       }
       toastVisible = true
+      val firstReached = newlyReached.first()
+      goalReachEvent = GoalReachEvent(
+        goalId = firstReached.id,
+        sourceType = firstReached.sourceType.ifBlank { "income" },
+      )
+      newlyReached.forEach { goal ->
+        showGoalReachedNotification(goal)
+      }
     }
   }
 
@@ -506,6 +575,7 @@ fun TabunganApp() {
     currentUser = null
     isLoggedIn = false
     pendingEdit = null
+    goalReachEvent = null
     achievedGoalIds.clear()
     lastIncomeTotal = 0
     lastExpenseTotal = 0
@@ -900,6 +970,7 @@ fun TabunganApp() {
                     displayUsername = displayUsername,
                     strings = strings,
                     theme = currentTheme,
+                    currentPage = currentPage,
                     isAdmin = adminLoggedIn,
                   )
 
@@ -947,6 +1018,7 @@ fun TabunganApp() {
                       Page.Expense -> ExpensePage(
                         onSave = { entry ->
                           expenseEntries.add(entry)
+                          updateGoalMilestones()
                           if (activeUserId.isNotBlank()) {
                             scope.launch(Dispatchers.IO) { insertMoneyEntry(activeUserId, entry) }
                           }
@@ -956,6 +1028,7 @@ fun TabunganApp() {
                         onUpdate = { entry ->
                           val index = expenseEntries.indexOfFirst { it.id == entry.id }
                           if (index >= 0) expenseEntries[index] = entry
+                          updateGoalMilestones()
                           if (activeUserId.isNotBlank()) {
                             scope.launch(Dispatchers.IO) { updateMoneyEntry(entry) }
                           }
@@ -1001,8 +1074,12 @@ fun TabunganApp() {
                             if (activeUserId.isNotBlank()) {
                               scope.launch(Dispatchers.IO) { deleteDreamEntry(entry.id) }
                             }
+                            toastMessage = strings["dream_deleted"]
+                            toastVisible = true
                           }
                         },
+                        goalReachSourceType = if (currentPage == Page.Dreams) goalReachEvent?.sourceType else null,
+                        onGoalReachDismiss = { goalReachEvent = null },
                         strings = strings,
                       )
                       Page.History -> HistoryPage(
@@ -1019,8 +1096,15 @@ fun TabunganApp() {
                               EntryType.Income -> {
                                 incomeEntries.removeAll { it.id == entry.id }
                                 updateGoalMilestones()
+                                toastMessage = strings["income_deleted"]
+                                toastVisible = true
                               }
-                              EntryType.Expense -> expenseEntries.removeAll { it.id == entry.id }
+                              EntryType.Expense -> {
+                                expenseEntries.removeAll { it.id == entry.id }
+                                updateGoalMilestones()
+                                toastMessage = strings["expense_deleted"]
+                                toastVisible = true
+                              }
                             }
                             if (activeUserId.isNotBlank()) {
                               scope.launch(Dispatchers.IO) { deleteMoneyEntry(entry.id) }
@@ -1415,6 +1499,7 @@ private fun TopBar(
   displayUsername: String,
   strings: AppStrings,
   theme: ThemeName,
+  currentPage: Page,
   isAdmin: Boolean,
 ) {
   val colors = LocalAppColors.current
@@ -1492,11 +1577,31 @@ private fun TopBar(
           if (isAdmin) {
             MenuItem(text = strings["admin_logout"], emoji = "🚪", color = colors.danger) { onLogout() }
           } else {
-            MenuItem(text = strings["menu_theme"], emoji = themePageIcon(theme, Page.Themes)) { onNavigate(Page.Themes) }
-            MenuItem(text = strings["menu_calculator"], emoji = themePageIcon(theme, Page.Calculator)) { onNavigate(Page.Calculator) }
-            MenuItem(text = strings["menu_report"], emoji = themePageIcon(theme, Page.Report)) { onNavigate(Page.Report) }
-            MenuItem(text = strings["menu_profile"], emoji = themePageIcon(theme, Page.Profile)) { onNavigate(Page.Profile) }
-            MenuItem(text = strings["menu_settings"], emoji = themePageIcon(theme, Page.Settings)) { onNavigate(Page.Settings) }
+            MenuItem(
+              text = strings["menu_theme"],
+              emoji = themePageIcon(theme, Page.Themes),
+              active = currentPage == Page.Themes,
+            ) { onNavigate(Page.Themes) }
+            MenuItem(
+              text = strings["menu_calculator"],
+              emoji = themePageIcon(theme, Page.Calculator),
+              active = currentPage == Page.Calculator,
+            ) { onNavigate(Page.Calculator) }
+            MenuItem(
+              text = strings["menu_report"],
+              emoji = themePageIcon(theme, Page.Report),
+              active = currentPage == Page.Report,
+            ) { onNavigate(Page.Report) }
+            MenuItem(
+              text = strings["menu_profile"],
+              emoji = themePageIcon(theme, Page.Profile),
+              active = currentPage == Page.Profile,
+            ) { onNavigate(Page.Profile) }
+            MenuItem(
+              text = strings["menu_settings"],
+              emoji = themePageIcon(theme, Page.Settings),
+              active = currentPage == Page.Settings,
+            ) { onNavigate(Page.Settings) }
             MenuItem(text = strings["menu_logout"], emoji = "🚪", color = colors.danger) { onLogout() }
           }
         }
@@ -1515,29 +1620,53 @@ private fun BottomNav(
 ) {
   val colors = LocalAppColors.current
   val items = listOf(Page.Income, Page.Expense, Page.Dreams, Page.History)
+  val navShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
   Row(
     modifier = modifier
       .fillMaxWidth()
-      .background(colors.card, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-      .border(2.dp, colors.cardBorder, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-      .padding(horizontal = 10.dp, vertical = 14.dp),
+      .heightIn(min = 88.dp)
+      .clip(navShape)
+      .background(colors.card)
+      .border(2.dp, colors.accent, navShape)
+      .padding(horizontal = 10.dp, vertical = 8.dp),
     horizontalArrangement = Arrangement.SpaceBetween,
   ) {
     items.forEach { item ->
       val active = current == item
+      val indicatorProgress by animateFloatAsState(
+        targetValue = if (active) 1f else 0f,
+        animationSpec = tween(durationMillis = 260),
+        label = "bottom-nav-indicator-${item.name}",
+      )
       Column(
         modifier = Modifier
           .weight(1f)
-          .padding(horizontal = 4.dp)
+          .padding(horizontal = 3.dp, vertical = 4.dp)
+          .offset(y = 5.dp)
           .clickable { onSelect(item) },
+        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
       ) {
         Text(text = themePageIcon(theme, item), fontSize = 26.sp, color = if (active) colors.text else colors.muted)
+        Spacer(modifier = Modifier.height(1.dp))
         Text(
           text = pageLabel(item, strings),
           fontSize = 13.sp,
           fontWeight = FontWeight.SemiBold,
           color = if (active) colors.text else colors.muted,
+        )
+        Box(
+          modifier = Modifier
+            .padding(top = 5.dp)
+            .width(32.dp)
+            .height(3.dp)
+            .graphicsLayer {
+              scaleX = indicatorProgress
+              alpha = indicatorProgress
+              transformOrigin = TransformOrigin(0f, 0.5f)
+            }
+            .clip(RoundedCornerShape(999.dp))
+            .background(Brush.linearGradient(listOf(colors.accent, colors.accent2))),
         )
       }
     }

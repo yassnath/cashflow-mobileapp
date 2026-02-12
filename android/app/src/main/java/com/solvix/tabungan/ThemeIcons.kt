@@ -27,7 +27,7 @@ private val ThemeIconMap = mapOf(
     themes = "🎨",
   ),
   ThemeName.StandardDark to ThemeIconSet(
-    app = "🕶️",
+    app = "🌕",
     income = "💹",
     expense = "💸",
     dreams = "🔮",
@@ -51,7 +51,7 @@ private val ThemeIconMap = mapOf(
     themes = "🧁",
   ),
   ThemeName.CartoonSpace to ThemeIconSet(
-    app = "🪐",
+    app = "🌠",
     income = "🚀",
     expense = "🌌",
     dreams = "🧑‍🚀",
@@ -60,7 +60,7 @@ private val ThemeIconMap = mapOf(
     report = "🪂",
     profile = "👽",
     settings = "🔭",
-    themes = "🌠",
+    themes = "🌟",
   ),
   ThemeName.CartoonMonster to ThemeIconSet(
     app = "👾",
