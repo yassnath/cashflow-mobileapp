@@ -1,39 +1,34 @@
-# CashFlow by Solvix Studio (Android)
+# CashFlow by Solvix Studio
 
-CashFlow adalah aplikasi pencatatan keuangan harian dengan fokus pengalaman mobile yang rapi, aman, dan cepat. Cocok untuk mencatat pemasukan, pengeluaran, tabungan/target, dan laporan, dengan tampilan yang bisa disesuaikan tema.
+CashFlow is a modern Android finance app built to make personal money management feel simple, fast, and actually enjoyable.
 
-## Highlight
-- Mobile-first UI yang nyaman di layar kecil
-- Multi theme (light/dark/space) dengan icon & warna yang konsisten
-- Ringkasan cepat: income, expense, balance
-- Laporan visual bulanan/tahunan + export PDF/CSV
-- Proteksi privasi pada onboarding/login
-- Opsi login fingerprint (jika perangkat mendukung)
-- Data user tersimpan online (Supabase)
+It helps users track income and expenses, monitor goals, analyze trends, and stay consistent with financial habits through a clean mobile-first experience.
 
-## Fitur Utama
-- Pemasukan & Pengeluaran (CRUD)
-- History transaksi + filter rentang tanggal
-- Target / Dreams tracker
-- Kalkulator
-- Profil & Pengaturan
-- Multi-bahasa (Indonesia / English)
+## Why CashFlow
+- Built for speed and clarity on real mobile screens
+- Designed with a polished visual identity and theme flexibility
+- Gives users instant insight into income, expenses, and balance
+- Turns raw transaction logs into practical financial visibility
+- Keeps user data synchronized online with Supabase
 
-## Tech Stack
-- Kotlin + Jetpack Compose
+## Core Product Value
+- Complete income and expense management (create, edit, delete)
+- Smart transaction history with date-range filtering
+- Goal and dream tracking with visual progress
+- Monthly and yearly analytics with report export (PDF/CSV)
+- Integrated calculator for quick decision support
+- Profile and preference controls for personalized use
+- Bilingual experience (English and Indonesian)
+
+## Security and Trust
+- Authentication flow with privacy-focused onboarding
+- Fingerprint sign-in support on compatible devices
+- Reliable cloud-backed data architecture
+
+## Technology Foundation
+- Kotlin
+- Jetpack Compose
 - Material 3
-- Supabase (Postgres)
+- Supabase (Postgres + API)
 
-## Cara Menjalankan
-1) Buka project Android di Android Studio.
-2) Sync Gradle, lalu pilih device/emulator.
-3) Jalankan konfigurasi `app` (Debug).
-
-## Build APK (Release)
-1) Android Studio → Build → Generate Signed App Bundle / APK.
-2) Pilih `APK`, lalu `release`.
-3) Simpan file `.apk` hasil build dan install ke perangkat.
-
-## Catatan
-- Pastikan perangkat memiliki akses internet untuk sign in / sign up.
-- Jika fingerprint diaktifkan, perangkat harus sudah punya lockscreen + fingerprint terdaftar.
+CashFlow is positioned as a practical, production-ready finance companion for users who want control, insight, and consistency in one app.
